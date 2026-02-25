@@ -49,6 +49,12 @@ enum KategoriIsu {
   LAINNYA
 }
 
+enum TipeDistribusiLogistik {
+  ADMIN_KE_KOORDINATOR
+  KOORDINATOR_KE_RELAWAN
+  RELAWAN_KE_PENDUKUNG
+}
+
 
 // ============ MODELS ============
 
@@ -102,6 +108,7 @@ model Koordinator {
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   wilayah     Wilayah  @relation(fields: [wilayahId], references: [id])
   relawans    Relawan[]
+  logistikDistribusi LogistikDistribusi[]
 
   @@map("koordinator")
 }
@@ -121,6 +128,7 @@ model Relawan {
   wilayah       Wilayah     @relation(fields: [wilayahId], references: [id])
   pendukung     Pendukung[]
   distribusi    DistribusiSembako[]
+  logistikDistribusi LogistikDistribusi[]
 
   @@map("relawan")
 }
@@ -147,6 +155,7 @@ model Pendukung {
   wilayah         Wilayah         @relation(fields: [wilayahId], references: [id])
   jawabanSurvey   JawabanSurvey[]
   distribusi      DistribusiSembako[]
+  logistikDistribusi LogistikDistribusi[]
 
   @@map("pendukung")
 }
@@ -249,4 +258,53 @@ model BuktiIsu {
   isu         Isu      @relation(fields: [isuId], references: [id], onDelete: Cascade)
 
   @@map("bukti_isu")
+}
+
+// ============ LOGISTIK ============
+
+model LogistikItem {
+  id          String   @id @default(cuid())
+  namaBarang  String
+  satuan      String   // kg, pcs, pak, dll
+  deskripsi   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  logistikMasuk      LogistikMasuk[]
+  logistikDistribusi LogistikDistribusi[]
+
+  @@map("logistik_item")
+}
+
+model LogistikMasuk {
+  id             String       @id @default(cuid())
+  logistikItemId String
+  jumlah         Int
+  tanggal        DateTime
+  keterangan     String?
+  createdAt      DateTime     @default(now())
+
+  logistikItem   LogistikItem @relation(fields: [logistikItemId], references: [id], onDelete: Cascade)
+
+  @@map("logistik_masuk")
+}
+
+model LogistikDistribusi {
+  id               String                  @id @default(cuid())
+  logistikItemId   String
+  jumlah           Int
+  tanggal          DateTime
+  tipeDistribusi   TipeDistribusiLogistik
+  koordinatorId    String?
+  relawanId        String?
+  pendukungId      String?
+  keterangan       String?
+  createdAt        DateTime                @default(now())
+
+  logistikItem     LogistikItem  @relation(fields: [logistikItemId], references: [id], onDelete: Cascade)
+  koordinator      Koordinator?  @relation(fields: [koordinatorId], references: [id])
+  relawan          Relawan?      @relation(fields: [relawanId], references: [id])
+  pendukung        Pendukung?    @relation(fields: [pendukungId], references: [id])
+
+  @@map("logistik_distribusi")
 }
