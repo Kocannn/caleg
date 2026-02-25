@@ -1,0 +1,218 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ============ ENUMS ============
+
+enum Role {
+  ADMIN
+  CALEG
+  KOORDINATOR
+  RELAWAN
+}
+
+enum StatusDukungan {
+  MENDUKUNG
+  RAGU
+  TIDAK_MENDUKUNG
+  BELUM_DIKONFIRMASI
+}
+
+enum StatusPenerimaan {
+  BELUM_DITERIMA
+  SUDAH_DITERIMA
+  DITOLAK
+}
+
+enum TipePertanyaan {
+  TEXT
+  PILIHAN_GANDA
+  SKALA
+  YA_TIDAK
+}
+
+enum StatusApproval {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// ============ MODELS ============
+
+model User {
+  id            String    @id @default(cuid())
+  username      String    @unique
+  password      String
+  namaLengkap   String
+  email         String?   @unique
+  nomorHp       String?
+  role          Role      @default(RELAWAN)
+  aktif         Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  koordinator   Koordinator?
+  relawan       Relawan?
+
+  @@map("users")
+}
+
+model Wilayah {
+  id           String   @id @default(cuid())
+  namaWilayah  String
+  provinsi     String
+  kabupaten    String
+  kecamatan    String
+  kelurahan    String
+  kodePos      String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  koordinators Koordinator[]
+  relawans     Relawan[]
+  pendukung    Pendukung[]
+  waBlasts     WaBlast[]
+
+  @@unique([provinsi, kabupaten, kecamatan, kelurahan])
+  @@map("wilayah")
+}
+
+model Koordinator {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  wilayahId   String
+  namaLengkap String
+  noHp        String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  wilayah     Wilayah  @relation(fields: [wilayahId], references: [id])
+  relawans    Relawan[]
+
+  @@map("koordinator")
+}
+
+model Relawan {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  koordinatorId String
+  wilayahId     String
+  namaLengkap   String
+  noHp          String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  koordinator   Koordinator @relation(fields: [koordinatorId], references: [id])
+  wilayah       Wilayah     @relation(fields: [wilayahId], references: [id])
+  pendukung     Pendukung[]
+  distribusi    DistribusiSembako[]
+
+  @@map("relawan")
+}
+
+model Pendukung {
+  id              String          @id @default(cuid())
+  relawanId       String
+  wilayahId       String
+  namaLengkap     String
+  nik             String          @unique
+  noHp            String?
+  alamat          String
+  rt              String?
+  rw              String?
+  latitude        Float?
+  longitude       Float?
+  fotoRumah       String?
+  statusDukungan  StatusDukungan  @default(BELUM_DIKONFIRMASI)
+  statusApproval  StatusApproval  @default(PENDING)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  relawan         Relawan         @relation(fields: [relawanId], references: [id])
+  wilayah         Wilayah         @relation(fields: [wilayahId], references: [id])
+  jawabanSurvey   JawabanSurvey[]
+  distribusi      DistribusiSembako[]
+
+  @@map("pendukung")
+}
+
+model Survey {
+  id          String   @id @default(cuid())
+  judul       String
+  deskripsi   String?
+  aktif       Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  pertanyaans PertanyaanSurvey[]
+
+  @@map("survey")
+}
+
+model PertanyaanSurvey {
+  id          String          @id @default(cuid())
+  surveyId    String
+  pertanyaan  String
+  tipe        TipePertanyaan  @default(TEXT)
+  opsi        String[]        // Array of options for multiple choice
+  urutan      Int             @default(0)
+  createdAt   DateTime        @default(now())
+
+  survey      Survey          @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  jawabans    JawabanSurvey[]
+
+  @@map("pertanyaan_survey")
+}
+
+model JawabanSurvey {
+  id                  String   @id @default(cuid())
+  pertanyaanSurveyId  String
+  pendukungId         String
+  jawaban             String
+  createdAt           DateTime @default(now())
+
+  pertanyaanSurvey    PertanyaanSurvey @relation(fields: [pertanyaanSurveyId], references: [id], onDelete: Cascade)
+  pendukung           Pendukung        @relation(fields: [pendukungId], references: [id], onDelete: Cascade)
+
+  @@unique([pertanyaanSurveyId, pendukungId])
+  @@map("jawaban_survey")
+}
+
+model DistribusiSembako {
+  id                String          @id @default(cuid())
+  pendukungId       String
+  relawanId         String
+  jenisBantuan      String
+  tanggalDistribusi DateTime
+  statusPenerimaan  StatusPenerimaan @default(BELUM_DITERIMA)
+  keterangan        String?
+  fotoBukti         String?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  pendukung         Pendukung       @relation(fields: [pendukungId], references: [id])
+  relawan           Relawan         @relation(fields: [relawanId], references: [id])
+
+  @@map("distribusi_sembako")
+}
+
+model WaBlast {
+  id          String    @id @default(cuid())
+  pesan       String
+  mediaUrl    String?
+  mediaType   String?   // text, image, pdf
+  wilayahId   String?   // null = broadcast all
+  status      String    @default("pending") // pending, sent, failed
+  createdAt   DateTime  @default(now())
+
+  wilayah     Wilayah?  @relation(fields: [wilayahId], references: [id])
+
+  @@map("wa_blast")
+}
