@@ -30,6 +30,8 @@ export default function PendukungInput({ relawanId, wilayahId, initialData }: { 
   const [nikResult, setNikResult] = useState<string | null>(null);
   const [showPhoto, setShowPhoto] = useState<PendukungItem | null>(null);
   const [showMap, setShowMap] = useState<PendukungItem | null>(null);
+  const [fotoFile, setFotoFile] = useState<File | null>(null);
+  const [fotoPreview, setFotoPreview] = useState<string | null>(null);
   const router = useRouter();
 
   const [form, setForm] = useState({
@@ -75,16 +77,25 @@ export default function PendukungInput({ relawanId, wilayahId, initialData }: { 
     const url = editId ? `/api/relawan/pendukung/${editId}` : "/api/relawan/pendukung";
     const method = editId ? "PUT" : "POST";
 
+    const formData = new FormData();
+    Object.entries({ ...form, relawanId, wilayahId }).forEach(([key, value]) => {
+      formData.append(key, String(value));
+    });
+    if (fotoFile) {
+      formData.append("foto", fotoFile);
+    }
+
     const res = await fetch(url, {
       method,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...form, relawanId, wilayahId }),
+      body: formData,
     });
 
     if (res.ok) {
       setShowForm(false);
       setEditId(null);
       setForm({ namaLengkap: "", nik: "", noHp: "", alamat: "", rt: "", rw: "", latitude: 0, longitude: 0, statusDukungan: "BELUM_DIKONFIRMASI" });
+      setFotoFile(null);
+      setFotoPreview(null);
       router.refresh();
       const updated = await fetch("/api/relawan/pendukung").then((r) => r.json());
       setData(updated);
@@ -107,6 +118,8 @@ export default function PendukungInput({ relawanId, wilayahId, initialData }: { 
       longitude: item.longitude || 0,
       statusDukungan: item.statusDukungan,
     });
+    setFotoFile(null);
+    setFotoPreview(item.fotoRumah || null);
     setShowForm(true);
   }
 
@@ -125,7 +138,7 @@ export default function PendukungInput({ relawanId, wilayahId, initialData }: { 
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Data Pendukung</h1>
-        <button onClick={() => { setShowForm(true); setEditId(null); setForm({ namaLengkap: "", nik: "", noHp: "", alamat: "", rt: "", rw: "", latitude: 0, longitude: 0, statusDukungan: "BELUM_DIKONFIRMASI" }); }}
+        <button onClick={() => { setShowForm(true); setEditId(null); setFotoFile(null); setFotoPreview(null); setForm({ namaLengkap: "", nik: "", noHp: "", alamat: "", rt: "", rw: "", latitude: 0, longitude: 0, statusDukungan: "BELUM_DIKONFIRMASI" }); }}
           className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium text-sm">
           + Tambah Pendukung
         </button>
@@ -231,7 +244,7 @@ export default function PendukungInput({ relawanId, wilayahId, initialData }: { 
       )}
 
       {/* Map Location Modal */}
-      {showMap && showMap.latitude && showMap.longitude && (
+      {showMap && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowMap(null)}>
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl mx-4" onClick={(e) => e.stopPropagation()}>
             <div className="p-4 border-b flex items-center justify-between">
@@ -244,11 +257,17 @@ export default function PendukungInput({ relawanId, wilayahId, initialData }: { 
               </button>
             </div>
             <div className="p-4">
-              <MapViewer
-                latitude={showMap.latitude}
-                longitude={showMap.longitude}
-                label={showMap.namaLengkap}
-              />
+              {showMap.latitude && showMap.longitude ? (
+                <MapViewer
+                  latitude={showMap.latitude}
+                  longitude={showMap.longitude}
+                  label={showMap.namaLengkap}
+                />
+              ) : (
+                <div className="w-full h-80 rounded-lg border border-gray-300 bg-gray-100 flex items-center justify-center text-gray-400">
+                  Koordinat lokasi belum tersedia
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -299,6 +318,42 @@ export default function PendukungInput({ relawanId, wilayahId, initialData }: { 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">RW</label>
                   <input type="text" value={form.rw} onChange={(e) => setForm({ ...form, rw: e.target.value })} className="w-full px-3 py-2 border rounded-lg text-sm" />
+                </div>
+              </div>
+
+              {/* Photo Upload */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Bukti Foto Rumah</label>
+                <div className="flex items-start gap-4">
+                  <label className="cursor-pointer flex flex-col items-center justify-center w-32 h-32 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-400 hover:bg-blue-50 transition-colors">
+                    <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                    <span className="text-xs text-gray-500 mt-1">{fotoFile ? "Ganti Foto" : "Ambil Foto"}</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          setFotoFile(file);
+                          setFotoPreview(URL.createObjectURL(file));
+                        }
+                      }}
+                    />
+                  </label>
+                  {fotoPreview && (
+                    <div className="relative">
+                      <img src={fotoPreview} alt="Preview" className="w-32 h-32 object-cover rounded-lg border" />
+                      <button
+                        type="button"
+                        onClick={() => { setFotoFile(null); setFotoPreview(null); }}
+                        className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
 

@@ -1,6 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import dynamic from "next/dynamic";
+
+const MapViewer = dynamic(() => import("@/components/MapViewer"), { ssr: false });
 
 interface PendukungItem {
   id: string;
@@ -10,6 +13,9 @@ interface PendukungItem {
   alamat: string;
   statusDukungan: string;
   statusApproval: string;
+  latitude: number | null;
+  longitude: number | null;
+  fotoRumah: string | null;
   createdAt: string;
   relawan: { namaLengkap: string };
   wilayah: { kecamatan: string; kelurahan: string; kabupaten: string };
@@ -29,37 +35,20 @@ const statusColors: Record<string, string> = {
   BELUM_DIKONFIRMASI: "bg-gray-100 text-gray-700",
 };
 
-const approvalColors: Record<string, string> = {
-  APPROVED: "bg-green-100 text-green-700",
-  PENDING: "bg-yellow-100 text-yellow-700",
-  REJECTED: "bg-red-100 text-red-700",
-};
-
 export default function PendukungClient({ initialData, wilayahList }: { initialData: PendukungItem[]; wilayahList: Wilayah[] }) {
   const [data, setData] = useState(initialData);
   const [filterWilayah, setFilterWilayah] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
-  const [filterApproval, setFilterApproval] = useState("");
   const [search, setSearch] = useState("");
+  const [showPhoto, setShowPhoto] = useState<PendukungItem | null>(null);
+  const [showMap, setShowMap] = useState<PendukungItem | null>(null);
 
   const filtered = data.filter((p) => {
     const matchWilayah = !filterWilayah || p.wilayah.kecamatan === filterWilayah;
     const matchStatus = !filterStatus || p.statusDukungan === filterStatus;
-    const matchApproval = !filterApproval || p.statusApproval === filterApproval;
     const matchSearch = !search || p.namaLengkap.toLowerCase().includes(search.toLowerCase()) || p.nik.includes(search);
-    return matchWilayah && matchStatus && matchApproval && matchSearch;
+    return matchWilayah && matchStatus && matchSearch;
   });
-
-  async function handleApproval(id: string, status: string) {
-    const res = await fetch(`/api/admin/pendukung/${id}/approval`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ statusApproval: status }),
-    });
-    if (res.ok) {
-      setData((prev) => prev.map((p) => (p.id === id ? { ...p, statusApproval: status } : p)));
-    }
-  }
 
   return (
     <div>
@@ -80,12 +69,6 @@ export default function PendukungClient({ initialData, wilayahList }: { initialD
           <option value="TIDAK_MENDUKUNG">Tidak Mendukung</option>
           <option value="BELUM_DIKONFIRMASI">Belum Dikonfirmasi</option>
         </select>
-        <select value={filterApproval} onChange={(e) => setFilterApproval(e.target.value)} className="px-4 py-2 border border-gray-300 rounded-lg text-sm">
-          <option value="">Semua Approval</option>
-          <option value="PENDING">Pending</option>
-          <option value="APPROVED">Approved</option>
-          <option value="REJECTED">Rejected</option>
-        </select>
       </div>
 
       <div className="bg-white rounded-xl border border-gray-200 overflow-x-auto">
@@ -98,8 +81,8 @@ export default function PendukungClient({ initialData, wilayahList }: { initialD
               <th className="px-4 py-3 text-left font-semibold text-gray-600">Wilayah</th>
               <th className="px-4 py-3 text-left font-semibold text-gray-600">Relawan</th>
               <th className="px-4 py-3 text-left font-semibold text-gray-600">Status</th>
-              <th className="px-4 py-3 text-left font-semibold text-gray-600">Approval</th>
-              <th className="px-4 py-3 text-center font-semibold text-gray-600">Aksi</th>
+              <th className="px-4 py-3 text-center font-semibold text-gray-600">Foto Bukti</th>
+              <th className="px-4 py-3 text-center font-semibold text-gray-600">Lokasi</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
@@ -115,24 +98,25 @@ export default function PendukungClient({ initialData, wilayahList }: { initialD
                     {p.statusDukungan.replace(/_/g, " ")}
                   </span>
                 </td>
-                <td className="px-4 py-3">
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${approvalColors[p.statusApproval]}`}>
-                    {p.statusApproval}
-                  </span>
+                <td className="px-4 py-3 text-center">
+                  {p.fotoRumah ? (
+                    <button onClick={() => setShowPhoto(p)} className="px-2 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 inline-flex items-center gap-1">
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                      Lihat Foto
+                    </button>
+                  ) : (
+                    <span className="text-xs text-gray-400">Belum ada</span>
+                  )}
                 </td>
-                <td className="px-4 py-3">
-                  <div className="flex items-center justify-center gap-1">
-                    {p.statusApproval === "PENDING" && (
-                      <>
-                        <button onClick={() => handleApproval(p.id, "APPROVED")} className="px-2 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700">
-                          Approve
-                        </button>
-                        <button onClick={() => handleApproval(p.id, "REJECTED")} className="px-2 py-1 bg-red-600 text-white rounded text-xs hover:bg-red-700">
-                          Reject
-                        </button>
-                      </>
-                    )}
-                  </div>
+                <td className="px-4 py-3 text-center">
+                  {p.latitude && p.longitude ? (
+                    <button onClick={() => setShowMap(p)} className="px-2 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700 inline-flex items-center gap-1">
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                      Lihat Lokasi
+                    </button>
+                  ) : (
+                    <span className="text-xs text-gray-400">Belum ada</span>
+                  )}
                 </td>
               </tr>
             ))}
@@ -141,6 +125,56 @@ export default function PendukungClient({ initialData, wilayahList }: { initialD
       </div>
 
       <p className="text-sm text-gray-500 mt-4">Total: {filtered.length} data</p>
+
+      {/* Photo Modal */}
+      {showPhoto && showPhoto.fotoRumah && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowPhoto(null)}>
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl mx-4" onClick={(e) => e.stopPropagation()}>
+            <div className="p-4 border-b flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-bold">Foto Bukti - {showPhoto.namaLengkap}</h2>
+                <p className="text-xs text-gray-500">{showPhoto.alamat}</p>
+              </div>
+              <button onClick={() => setShowPhoto(null)} className="p-1 hover:bg-gray-100 rounded-full">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            <div className="p-4">
+              <img src={showPhoto.fotoRumah} alt={`Foto ${showPhoto.namaLengkap}`} className="w-full rounded-lg" />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Map Location Modal */}
+      {showMap && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowMap(null)}>
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl mx-4" onClick={(e) => e.stopPropagation()}>
+            <div className="p-4 border-b flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-bold">Lokasi - {showMap.namaLengkap}</h2>
+                <p className="text-xs text-gray-500">{showMap.alamat}</p>
+              </div>
+              <button onClick={() => setShowMap(null)} className="p-1 hover:bg-gray-100 rounded-full">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            <div className="p-4">
+              {showMap.latitude && showMap.longitude ? (
+                <MapViewer
+                  latitude={showMap.latitude}
+                  longitude={showMap.longitude}
+                  label={showMap.namaLengkap}
+                />
+              ) : (
+                <div className="w-full h-80 rounded-lg border border-gray-300 bg-gray-100 flex items-center justify-center text-gray-400">
+                  Koordinat lokasi belum tersedia
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

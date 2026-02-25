@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
+import { writeFile, mkdir } from "fs/promises";
+import path from "path";
 
 export async function GET() {
   const session = await auth();
@@ -21,8 +23,19 @@ export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const body = await req.json();
-  const { namaLengkap, nik, noHp, alamat, rt, rw, latitude, longitude, statusDukungan, relawanId, wilayahId } = body;
+  const formData = await req.formData();
+  const namaLengkap = formData.get("namaLengkap") as string;
+  const nik = formData.get("nik") as string;
+  const noHp = formData.get("noHp") as string;
+  const alamat = formData.get("alamat") as string;
+  const rt = formData.get("rt") as string;
+  const rw = formData.get("rw") as string;
+  const latitude = formData.get("latitude") as string;
+  const longitude = formData.get("longitude") as string;
+  const statusDukungan = formData.get("statusDukungan") as string;
+  const relawanId = formData.get("relawanId") as string;
+  const wilayahId = formData.get("wilayahId") as string;
+  const foto = formData.get("foto") as File | null;
 
   if (!namaLengkap || !nik || !alamat) {
     return NextResponse.json({ error: "Field wajib harus diisi" }, { status: 400 });
@@ -38,6 +51,22 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "NIK sudah terdaftar" }, { status: 400 });
   }
 
+  // Handle file upload
+  let fotoRumah: string | null = null;
+  if (foto && foto.size > 0) {
+    const uploadDir = path.join(process.cwd(), "public", "uploads", "pendukung");
+    await mkdir(uploadDir, { recursive: true });
+
+    const ext = path.extname(foto.name) || ".jpg";
+    const filename = `${nik}_${Date.now()}${ext}`;
+    const filePath = path.join(uploadDir, filename);
+
+    const buffer = Buffer.from(await foto.arrayBuffer());
+    await writeFile(filePath, buffer);
+
+    fotoRumah = `/uploads/pendukung/${filename}`;
+  }
+
   const pendukung = await prisma.pendukung.create({
     data: {
       relawanId,
@@ -48,10 +77,11 @@ export async function POST(req: NextRequest) {
       alamat,
       rt: rt || null,
       rw: rw || null,
-      latitude: latitude || null,
-      longitude: longitude || null,
+      latitude: parseFloat(latitude) || null,
+      longitude: parseFloat(longitude) || null,
       statusDukungan: statusDukungan || "BELUM_DIKONFIRMASI",
       statusApproval: "PENDING",
+      fotoRumah,
     },
   });
 
