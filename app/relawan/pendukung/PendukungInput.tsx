@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 
 const MapPicker = dynamic(() => import("@/components/MapPicker"), { ssr: false });
+const MapViewer = dynamic(() => import("@/components/MapViewer"), { ssr: false });
 
 interface PendukungItem {
   id: string;
@@ -16,6 +17,7 @@ interface PendukungItem {
   statusApproval: string;
   latitude: number | null;
   longitude: number | null;
+  fotoRumah: string | null;
   createdAt: string;
 }
 
@@ -26,6 +28,8 @@ export default function PendukungInput({ relawanId, wilayahId, initialData }: { 
   const [search, setSearch] = useState("");
   const [nikSearch, setNikSearch] = useState("");
   const [nikResult, setNikResult] = useState<string | null>(null);
+  const [showPhoto, setShowPhoto] = useState<PendukungItem | null>(null);
+  const [showMap, setShowMap] = useState<PendukungItem | null>(null);
   const router = useRouter();
 
   const [form, setForm] = useState({
@@ -150,7 +154,7 @@ export default function PendukungInput({ relawanId, wilayahId, initialData }: { 
               <th className="px-4 py-3 text-left font-semibold text-gray-600">NIK</th>
               <th className="px-4 py-3 text-left font-semibold text-gray-600">No HP</th>
               <th className="px-4 py-3 text-left font-semibold text-gray-600">Status</th>
-              <th className="px-4 py-3 text-left font-semibold text-gray-600">Approval</th>
+              <th className="px-4 py-3 text-center font-semibold text-gray-600">Bukti Foto</th>
               <th className="px-4 py-3 text-center font-semibold text-gray-600">Aksi</th>
             </tr>
           </thead>
@@ -164,19 +168,91 @@ export default function PendukungInput({ relawanId, wilayahId, initialData }: { 
                 <td className="px-4 py-3">
                   <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColors[p.statusDukungan]}`}>{p.statusDukungan.replace(/_/g, " ")}</span>
                 </td>
-                <td className="px-4 py-3">
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${p.statusApproval === "APPROVED" ? "bg-green-100 text-green-700" : p.statusApproval === "REJECTED" ? "bg-red-100 text-red-700" : "bg-yellow-100 text-yellow-700"}`}>{p.statusApproval}</span>
+                <td className="px-4 py-3 text-center">
+                  {p.fotoRumah ? (
+                    <button
+                      onClick={() => setShowPhoto(p)}
+                      className="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-xs hover:bg-indigo-700 inline-flex items-center gap-1"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                      Lihat Foto
+                    </button>
+                  ) : (
+                    <span className="text-xs text-gray-400">Belum ada</span>
+                  )}
                 </td>
                 <td className="px-4 py-3 text-center">
-                  <button onClick={() => openEdit(p)} className="p-1 text-blue-600 hover:bg-blue-50 rounded">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-                  </button>
+                  <div className="flex items-center justify-center gap-1">
+                    {p.latitude && p.longitude ? (
+                      <button
+                        onClick={() => setShowMap(p)}
+                        className="px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-xs hover:bg-emerald-700 inline-flex items-center gap-1"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                        Lihat Lokasi
+                      </button>
+                    ) : (
+                      <span className="text-xs text-gray-400">Tidak ada</span>
+                    )}
+                    <button onClick={() => openEdit(p)} className="p-1 text-blue-600 hover:bg-blue-50 rounded" title="Edit">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+
+      {/* Photo Modal */}
+      {showPhoto && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowPhoto(null)}>
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="p-4 border-b flex items-center justify-between">
+              <h2 className="text-lg font-bold">Bukti Foto - {showPhoto.namaLengkap}</h2>
+              <button onClick={() => setShowPhoto(null)} className="p-1 hover:bg-gray-100 rounded-full">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            <div className="p-4">
+              {showPhoto.fotoRumah ? (
+                <img
+                  src={showPhoto.fotoRumah}
+                  alt={`Foto rumah ${showPhoto.namaLengkap}`}
+                  className="w-full rounded-lg object-contain max-h-[60vh]"
+                />
+              ) : (
+                <p className="text-center text-gray-400 py-8">Foto belum tersedia</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Map Location Modal */}
+      {showMap && showMap.latitude && showMap.longitude && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowMap(null)}>
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl mx-4" onClick={(e) => e.stopPropagation()}>
+            <div className="p-4 border-b flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-bold">Lokasi - {showMap.namaLengkap}</h2>
+                <p className="text-xs text-gray-500">{showMap.alamat}</p>
+              </div>
+              <button onClick={() => setShowMap(null)} className="p-1 hover:bg-gray-100 rounded-full">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            <div className="p-4">
+              <MapViewer
+                latitude={showMap.latitude}
+                longitude={showMap.longitude}
+                label={showMap.namaLengkap}
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Input Form Modal */}
       {showForm && (

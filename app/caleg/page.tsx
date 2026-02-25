@@ -15,7 +15,7 @@ export default async function CalegDashboardPage() {
 
   // Per-wilayah stats
   const wilayahStats = await prisma.wilayah.findMany({
-    include: { _count: { select: { pendukungs: true, relawans: true, koordinators: true } } },
+    include: { _count: { select: { pendukung: true, relawans: true, koordinators: true } } },
     orderBy: { namaWilayah: "asc" },
   });
 
@@ -69,7 +69,7 @@ export default async function CalegDashboardPage() {
       }))}
       wilayahStats={wilayahStats.map((w) => ({
         nama: w.namaWilayah,
-        pendukung: w._count.pendukungs,
+        pendukung: w._count.pendukung,
         relawan: w._count.relawans,
         koordinator: w._count.koordinators,
       }))}

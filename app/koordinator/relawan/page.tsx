@@ -12,7 +12,7 @@ export default async function KoordinatorRelawanPage() {
     include: {
       user: true,
       wilayah: true,
-      _count: { select: { pendukungs: true, distribusiSembakos: true } },
+      _count: { select: { pendukung: true, distribusi: true } },
     },
     orderBy: { user: { namaLengkap: "asc" } },
   });

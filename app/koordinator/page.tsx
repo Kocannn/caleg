@@ -14,11 +14,11 @@ export default async function KoordinatorDashboardPage() {
 
   const relawans = await prisma.relawan.findMany({
     where: { koordinatorId: koordinator.id },
-    include: { user: true, _count: { select: { pendukungs: true } } },
+    include: { user: true, _count: { select: { pendukung: true } } },
   });
 
   const totalRelawan = relawans.length;
-  const totalPendukung = relawans.reduce((sum, r) => sum + r._count.pendukungs, 0);
+  const totalPendukung = relawans.reduce((sum, r) => sum + r._count.pendukung, 0);
 
   const pendukungBulanIni = await prisma.pendukung.count({
     where: {

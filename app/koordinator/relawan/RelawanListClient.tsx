@@ -6,7 +6,7 @@ interface RelawanData {
   id: string;
   user: { namaLengkap: string; username: string; email: string | null; nomorHp: string | null; aktif: boolean };
   wilayah: { namaWilayah: string } | null;
-  _count: { pendukungs: number; distribusiSembakos: number };
+  _count: { pendukung: number; distribusi: number };
 }
 
 export default function RelawanListClient({ relawans }: { relawans: RelawanData[] }) {
@@ -45,11 +45,11 @@ export default function RelawanListClient({ relawans }: { relawans: RelawanData[
             </div>
             <div className="flex gap-6 text-center">
               <div>
-                <div className="text-xl font-bold text-blue-600">{r._count.pendukungs}</div>
+                <div className="text-xl font-bold text-blue-600">{r._count.pendukung}</div>
                 <div className="text-xs text-gray-500">Pendukung</div>
               </div>
               <div>
-                <div className="text-xl font-bold text-green-600">{r._count.distribusiSembakos}</div>
+                <div className="text-xl font-bold text-green-600">{r._count.distribusi}</div>
                 <div className="text-xs text-gray-500">Distribusi</div>
               </div>
               <div>

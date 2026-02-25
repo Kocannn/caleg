@@ -15,8 +15,7 @@ interface MarkerData {
   longitude: number | null;
   statusDukungan: string;
   alamat: string | null;
-  kelurahan: string | null;
-  wilayah: { namaWilayah: string } | null;
+  wilayah: { namaWilayah: string; kelurahan: string } | null;
 }
 
 const STATUS_COLOR: Record<string, string> = {
@@ -88,7 +87,7 @@ export default function PetaSebaranClient({ markers }: { markers: MarkerData[] }
               <Popup>
                 <div className="text-sm">
                   <div className="font-semibold">{m.namaLengkap}</div>
-                  <div className="text-gray-500">{m.alamat || "-"}, {m.kelurahan || ""}</div>
+                  <div className="text-gray-500">{m.alamat || "-"}, {m.wilayah?.kelurahan || ""}</div>
                   <div className="text-gray-500">Wilayah: {m.wilayah?.namaWilayah || "-"}</div>
                   <div className="mt-1">
                     <span className="px-2 py-0.5 rounded-full text-xs font-medium" style={{ backgroundColor: STATUS_COLOR[m.statusDukungan] + "20", color: STATUS_COLOR[m.statusDukungan] }}>

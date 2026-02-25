@@ -11,8 +11,7 @@ export default async function CalegPetaPage() {
       longitude: true,
       statusDukungan: true,
       alamat: true,
-      kelurahan: true,
-      wilayah: { select: { namaWilayah: true } },
+      wilayah: { select: { namaWilayah: true, kelurahan: true } },
     },
   });
 

@@ -12,8 +12,8 @@ export default async function KoordinatorMonitoringPage() {
     include: {
       user: true,
       wilayah: true,
-      _count: { select: { pendukungs: true, distribusiSembakos: true } },
-      pendukungs: {
+      _count: { select: { pendukung: true, distribusi: true } },
+      pendukung: {
         select: { statusDukungan: true, statusApproval: true, createdAt: true },
       },
     },
@@ -23,22 +23,22 @@ export default async function KoordinatorMonitoringPage() {
   // Calculate stats per relawan
   const monitoringData = relawans.map((r) => {
     const thisMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
-    const pendukungBulanIni = r.pendukungs.filter((p) => new Date(p.createdAt) >= thisMonth).length;
-    const approved = r.pendukungs.filter((p) => p.statusApproval === "APPROVED").length;
-    const pending = r.pendukungs.filter((p) => p.statusApproval === "PENDING").length;
-    const pendukungAktif = r.pendukungs.filter((p) => p.statusDukungan === "PENDUKUNG").length;
+    const pendukungBulanIni = r.pendukung.filter((p) => new Date(p.createdAt) >= thisMonth).length;
+    const approved = r.pendukung.filter((p) => p.statusApproval === "APPROVED").length;
+    const pending = r.pendukung.filter((p) => p.statusApproval === "PENDING").length;
+    const pendukungAktif = r.pendukung.filter((p) => p.statusDukungan === "PENDUKUNG").length;
 
     return {
       id: r.id,
       nama: r.user.namaLengkap,
       username: r.user.username,
       wilayah: r.wilayah?.namaWilayah || "-",
-      totalPendukung: r._count.pendukungs,
+      totalPendukung: r._count.pendukung,
       pendukungBulanIni,
       approved,
       pending,
       pendukungAktif,
-      distribusi: r._count.distribusiSembakos,
+      distribusi: r._count.distribusi,
       aktif: r.user.aktif,
     };
   });
