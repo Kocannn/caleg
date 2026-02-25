@@ -91,6 +91,7 @@ model Wilayah {
   relawans     Relawan[]
   pendukung    Pendukung[]
   waBlasts     WaBlast[]
+  quickCountTps QuickCountTps[]
 
   @@unique([provinsi, kabupaten, kecamatan, kelurahan])
   @@map("wilayah")
@@ -307,4 +308,53 @@ model LogistikDistribusi {
   pendukung        Pendukung?    @relation(fields: [pendukungId], references: [id])
 
   @@map("logistik_distribusi")
+}
+
+// ============ QUICK COUNT ============
+
+model QuickCountTps {
+  id          String   @id @default(cuid())
+  nomorTps    String
+  wilayahId   String
+  alamat      String?
+  jumlahDpt   Int      @default(0) // Daftar Pemilih Tetap
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  wilayah     Wilayah  @relation(fields: [wilayahId], references: [id])
+  hasilCounts QuickCountHasil[]
+
+  @@unique([nomorTps, wilayahId])
+  @@map("quick_count_tps")
+}
+
+model QuickCountCalon {
+  id           String   @id @default(cuid())
+  nomorUrut    Int
+  namaCalon    String
+  partai       String?
+  foto         String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  hasilCounts  QuickCountHasil[]
+
+  @@unique([nomorUrut])
+  @@map("quick_count_calon")
+}
+
+model QuickCountHasil {
+  id          String   @id @default(cuid())
+  tpsId       String
+  calonId     String
+  jumlahSuara Int      @default(0)
+  fotoBukti   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tps         QuickCountTps   @relation(fields: [tpsId], references: [id], onDelete: Cascade)
+  calon       QuickCountCalon @relation(fields: [calonId], references: [id], onDelete: Cascade)
+
+  @@unique([tpsId, calonId])
+  @@map("quick_count_hasil")
 }
