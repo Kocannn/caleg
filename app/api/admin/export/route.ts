@@ -94,6 +94,36 @@ export async function GET(req: NextRequest) {
       }));
       break;
     }
+    case "bantuan": {
+      const distribusi = await prisma.distribusiSembako.findMany({
+        include: {
+          pendukung: {
+            select: {
+              namaLengkap: true,
+              nik: true,
+              alamat: true,
+              wilayah: { select: { kecamatan: true, kelurahan: true, kabupaten: true } },
+            },
+          },
+          relawan: { select: { namaLengkap: true } },
+        },
+      });
+      data = distribusi.map((d) => ({
+        "Nama Penerima": d.pendukung.namaLengkap,
+        NIK: d.pendukung.nik,
+        Alamat: d.pendukung.alamat,
+        Kabupaten: d.pendukung.wilayah?.kabupaten || "",
+        Kecamatan: d.pendukung.wilayah?.kecamatan || "",
+        Kelurahan: d.pendukung.wilayah?.kelurahan || "",
+        "Jenis Bantuan": d.jenisBantuan,
+        "Tanggal Distribusi": new Date(d.tanggalDistribusi).toLocaleDateString("id-ID"),
+        "Status Penerimaan": d.statusPenerimaan,
+        Keterangan: d.keterangan || "",
+        Relawan: d.relawan.namaLengkap,
+        "Tanggal Input": new Date(d.createdAt).toLocaleDateString("id-ID"),
+      }));
+      break;
+    }
     default:
       return NextResponse.json({ error: "Invalid type" }, { status: 400 });
   }

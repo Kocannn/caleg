@@ -83,6 +83,9 @@ export default function ImportExportPage() {
             <button onClick={() => handleExport("survey")} disabled={exporting} className="w-full px-4 py-3 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 font-medium text-sm disabled:opacity-50 flex items-center justify-center gap-2">
               Export Hasil Survey
             </button>
+            <button onClick={() => handleExport("bantuan")} disabled={exporting} className="w-full px-4 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 font-medium text-sm disabled:opacity-50 flex items-center justify-center gap-2">
+              Export Data Bantuan
+            </button>
           </div>
         </div>
 
