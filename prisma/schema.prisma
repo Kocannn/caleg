@@ -42,6 +42,11 @@ enum StatusApproval {
   REJECTED
 }
 
+enum ResponStatus {
+  approve
+  reject
+}
+
 enum KategoriIsu {
   HOAX
   ISU_NEGATIF
@@ -235,6 +240,37 @@ model WaBlast {
   @@map("wa_blast")
 }
 
+model AgendaKegiatan {
+  id           BigInt   @id @default(autoincrement())
+  judul        String
+  deskripsi    String?
+  lokasi       String?
+  tanggal      DateTime
+  waktuMulai   DateTime
+  waktuSelesai DateTime
+  statusAktif  Boolean  @default(true)
+
+  dibuatOleh   BigInt?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  respon       AgendaRespon[]
+
+  @@map("agenda_kegiatan")
+}
+
+model AgendaRespon {
+  id           BigInt   @id @default(autoincrement())
+  agendaId     BigInt
+  calegId      BigInt
+  status       ResponStatus?
+  waktuRespon  DateTime?
+
+  agenda       AgendaKegiatan @relation(fields: [agendaId], references: [id])
+
+  @@unique([agendaId, calegId])
+  @@map("agenda_respon")
+}
 model Isu {
   id          String      @id @default(cuid())
   judul       String
