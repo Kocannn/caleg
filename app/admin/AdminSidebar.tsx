@@ -161,6 +161,15 @@ const navItems = [
       </svg>
     ),
   },
+  {
+    label: "Manajemen Isu",
+    href: "/admin/isu",
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+    ),
+  },
 ];
 
 export default function AdminSidebar({ userName }: { userName: string }) {

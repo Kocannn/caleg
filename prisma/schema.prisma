@@ -42,6 +42,14 @@ enum StatusApproval {
   REJECTED
 }
 
+enum KategoriIsu {
+  HOAX
+  ISU_NEGATIF
+  BLACK_CAMPAIGN
+  LAINNYA
+}
+
+
 // ============ MODELS ============
 
 model User {
@@ -215,4 +223,30 @@ model WaBlast {
   wilayah     Wilayah?  @relation(fields: [wilayahId], references: [id])
 
   @@map("wa_blast")
+}
+
+model Isu {
+  id          String      @id @default(cuid())
+  judul       String
+  deskripsi   String
+  kategori    KategoriIsu @default(LAINNYA)
+  sumber      String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  buktiIsu    BuktiIsu[]
+
+  @@map("isu")
+}
+
+model BuktiIsu {
+  id          String   @id @default(cuid())
+  isuId       String
+  url         String
+  keterangan  String?
+  createdAt   DateTime @default(now())
+
+  isu         Isu      @relation(fields: [isuId], references: [id], onDelete: Cascade)
+
+  @@map("bukti_isu")
 }
