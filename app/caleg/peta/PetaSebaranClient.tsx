@@ -3,10 +3,12 @@
 import { useState, useMemo } from "react";
 import dynamic from "next/dynamic";
 
-const MapContainer = dynamic(() => import("react-leaflet").then((m) => m.MapContainer), { ssr: false });
-const TileLayer = dynamic(() => import("react-leaflet").then((m) => m.TileLayer), { ssr: false });
-const CircleMarker = dynamic(() => import("react-leaflet").then((m) => m.CircleMarker), { ssr: false });
-const Popup = dynamic(() => import("react-leaflet").then((m) => m.Popup), { ssr: false });
+const PetaSebaranMap = dynamic(() => import("@/components/PetaSebaranMap"), {
+  ssr: false,
+  loading: () => (
+    <div className="flex items-center justify-center h-full bg-gray-100 text-gray-400">Memuat peta...</div>
+  ),
+});
 
 interface MarkerData {
   id: string;
@@ -69,36 +71,7 @@ export default function PetaSebaranClient({ markers }: { markers: MarkerData[] }
       </div>
 
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden" style={{ height: "calc(100vh - 240px)" }}>
-        <MapContainer center={center} zoom={12} style={{ height: "100%", width: "100%" }} scrollWheelZoom>
-          <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          />
-          {filtered.map((m) => (
-            <CircleMarker
-              key={m.id}
-              center={[m.latitude!, m.longitude!]}
-              radius={7}
-              fillColor={STATUS_COLOR[m.statusDukungan] || "#6b7280"}
-              color="#fff"
-              weight={2}
-              fillOpacity={0.85}
-            >
-              <Popup>
-                <div className="text-sm">
-                  <div className="font-semibold">{m.namaLengkap}</div>
-                  <div className="text-gray-500">{m.alamat || "-"}, {m.wilayah?.kelurahan || ""}</div>
-                  <div className="text-gray-500">Wilayah: {m.wilayah?.namaWilayah || "-"}</div>
-                  <div className="mt-1">
-                    <span className="px-2 py-0.5 rounded-full text-xs font-medium" style={{ backgroundColor: STATUS_COLOR[m.statusDukungan] + "20", color: STATUS_COLOR[m.statusDukungan] }}>
-                      {STATUS_LABEL[m.statusDukungan] || m.statusDukungan}
-                    </span>
-                  </div>
-                </div>
-              </Popup>
-            </CircleMarker>
-          ))}
-        </MapContainer>
+        <PetaSebaranMap filtered={filtered} center={center} />
       </div>
     </div>
   );
