@@ -112,11 +112,46 @@ async function seed() {
 
   // Create sample pendukung
   const pendukungData = [
-    { nama: "Ahmad Rizki", nik: "3578012345670001", alamat: "Jl. Airlangga No. 1", lat: -7.2756, lng: 112.7517, status: "MENDUKUNG" as const },
-    { nama: "Dewi Lestari", nik: "3578012345670002", alamat: "Jl. Dharmahusada No. 5", lat: -7.2700, lng: 112.7600, status: "MENDUKUNG" as const },
-    { nama: "Eko Prasetyo", nik: "3578012345670003", alamat: "Jl. Gubeng Kertajaya", lat: -7.2800, lng: 112.7550, status: "RAGU" as const },
-    { nama: "Fitri Handayani", nik: "3578012345670004", alamat: "Jl. Tegalsari No. 10", lat: -7.2900, lng: 112.7400, status: "TIDAK_MENDUKUNG" as const },
-    { nama: "Gunawan", nik: "3578012345670005", alamat: "Jl. Darmo Permai", lat: -7.2950, lng: 112.7350, status: "BELUM_DIKONFIRMASI" as const },
+    {
+      nama: "Ahmad Rizki",
+      nik: "3578012345670001",
+      alamat: "Jl. Airlangga No. 1",
+      lat: -7.2756,
+      lng: 112.7517,
+      status: "MENDUKUNG" as const,
+    },
+    {
+      nama: "Dewi Lestari",
+      nik: "3578012345670002",
+      alamat: "Jl. Dharmahusada No. 5",
+      lat: -7.27,
+      lng: 112.76,
+      status: "MENDUKUNG" as const,
+    },
+    {
+      nama: "Eko Prasetyo",
+      nik: "3578012345670003",
+      alamat: "Jl. Gubeng Kertajaya",
+      lat: -7.28,
+      lng: 112.755,
+      status: "RAGU" as const,
+    },
+    {
+      nama: "Fitri Handayani",
+      nik: "3578012345670004",
+      alamat: "Jl. Tegalsari No. 10",
+      lat: -7.29,
+      lng: 112.74,
+      status: "TIDAK_MENDUKUNG" as const,
+    },
+    {
+      nama: "Gunawan",
+      nik: "3578012345670005",
+      alamat: "Jl. Darmo Permai",
+      lat: -7.295,
+      lng: 112.735,
+      status: "BELUM_DIKONFIRMASI" as const,
+    },
   ];
 
   for (const p of pendukungData) {
@@ -153,7 +188,13 @@ async function seed() {
           {
             pertanyaan: "Isu apa yang paling penting bagi Anda?",
             tipe: "PILIHAN_GANDA",
-            opsi: ["Ekonomi", "Pendidikan", "Kesehatan", "Infrastruktur", "Keamanan"],
+            opsi: [
+              "Ekonomi",
+              "Pendidikan",
+              "Kesehatan",
+              "Infrastruktur",
+              "Keamanan",
+            ],
             urutan: 2,
           },
           {
