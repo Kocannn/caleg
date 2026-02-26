@@ -58,7 +58,9 @@ export default function KoordinatorClient({
   const [editingKoordinator, setEditingKoordinator] =
     useState<Koordinator | null>(null);
   const [search, setSearch] = useState("");
-  const [filterWilayah, setFilterWilayah] = useState("");
+  const [filterKabupaten, setFilterKabupaten] = useState("");
+  const [filterKecamatan, setFilterKecamatan] = useState("");
+  const [filterKelurahan, setFilterKelurahan] = useState("");
   const [showMap, setShowMap] = useState<Koordinator | null>(null);
   const router = useRouter();
 
@@ -72,22 +74,31 @@ export default function KoordinatorClient({
     longitude: null as number | null,
   });
 
+  // Cascading filter options
+  const kabupatenOptions = [...new Set(wilayahList.map((w) => w.kabupaten))].sort();
+  const kecamatanOptions = [...new Set(
+    wilayahList
+      .filter((w) => !filterKabupaten || w.kabupaten === filterKabupaten)
+      .map((w) => w.kecamatan)
+  )].sort();
+  const kelurahanOptions = [...new Set(
+    wilayahList
+      .filter((w) => !filterKabupaten || w.kabupaten === filterKabupaten)
+      .filter((w) => !filterKecamatan || w.kecamatan === filterKecamatan)
+      .map((w) => w.kelurahan)
+  )].sort();
+
   const filteredKoordinators = koordinators.filter((k) => {
     const matchSearch =
       !search ||
       k.namaLengkap.toLowerCase().includes(search.toLowerCase()) ||
       k.user.username.toLowerCase().includes(search.toLowerCase()) ||
       k.noHp.includes(search);
-    const matchWilayah =
-      !filterWilayah || k.wilayah.kecamatan === filterWilayah;
-    return matchSearch && matchWilayah;
+    const matchKabupaten = !filterKabupaten || k.wilayah.kabupaten === filterKabupaten;
+    const matchKecamatan = !filterKecamatan || k.wilayah.kecamatan === filterKecamatan;
+    const matchKelurahan = !filterKelurahan || k.wilayah.kelurahan === filterKelurahan;
+    return matchSearch && matchKabupaten && matchKecamatan && matchKelurahan;
   });
-
-  const uniqueWilayahs = Array.from(
-    new Map(
-      koordinators.map((k) => [k.wilayah.kecamatan, k.wilayah])
-    ).values()
-  );
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -222,24 +233,49 @@ export default function KoordinatorClient({
       </div>
 
       {/* Filters */}
-      <div className="flex gap-3 mb-4">
+      <div className="flex flex-wrap gap-3 mb-4">
         <input
           type="text"
           placeholder="Cari nama, username, atau no HP..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="px-4 py-2 border border-gray-300 rounded-lg text-sm flex-1 max-w-xs"
+          className="px-4 py-2 border border-gray-300 rounded-lg text-sm"
         />
         <select
-          value={filterWilayah}
-          onChange={(e) => setFilterWilayah(e.target.value)}
+          value={filterKabupaten}
+          onChange={(e) => {
+            setFilterKabupaten(e.target.value);
+            setFilterKecamatan("");
+            setFilterKelurahan("");
+          }}
           className="px-4 py-2 border border-gray-300 rounded-lg text-sm"
         >
-          <option value="">Semua Wilayah</option>
-          {uniqueWilayahs.map((w) => (
-            <option key={w.id} value={w.kecamatan}>
-              {w.kecamatan}, {w.kabupaten}
-            </option>
+          <option value="">Semua Kabupaten/Kota</option>
+          {kabupatenOptions.map((k) => (
+            <option key={k} value={k}>{k}</option>
+          ))}
+        </select>
+        <select
+          value={filterKecamatan}
+          onChange={(e) => {
+            setFilterKecamatan(e.target.value);
+            setFilterKelurahan("");
+          }}
+          className="px-4 py-2 border border-gray-300 rounded-lg text-sm"
+        >
+          <option value="">Semua Kecamatan</option>
+          {kecamatanOptions.map((k) => (
+            <option key={k} value={k}>{k}</option>
+          ))}
+        </select>
+        <select
+          value={filterKelurahan}
+          onChange={(e) => setFilterKelurahan(e.target.value)}
+          className="px-4 py-2 border border-gray-300 rounded-lg text-sm"
+        >
+          <option value="">Semua Kelurahan</option>
+          {kelurahanOptions.map((k) => (
+            <option key={k} value={k}>{k}</option>
           ))}
         </select>
       </div>
