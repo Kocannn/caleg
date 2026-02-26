@@ -15,6 +15,7 @@ interface Koordinator {
   id: string;
   namaLengkap: string;
   noHp: string;
+  tps: string | null;
   latitude: number | null;
   longitude: number | null;
   user: {
@@ -61,6 +62,7 @@ export default function KoordinatorClient({
   const [filterKabupaten, setFilterKabupaten] = useState("");
   const [filterKecamatan, setFilterKecamatan] = useState("");
   const [filterKelurahan, setFilterKelurahan] = useState("");
+  const [filterTps, setFilterTps] = useState("");
   const [showMap, setShowMap] = useState<Koordinator | null>(null);
   const router = useRouter();
 
@@ -87,6 +89,14 @@ export default function KoordinatorClient({
       .filter((w) => !filterKecamatan || w.kecamatan === filterKecamatan)
       .map((w) => w.kelurahan)
   )].sort();
+  const tpsOptions = [...new Set(
+    koordinators
+      .filter((k) => k.tps)
+      .filter((k) => !filterKabupaten || k.wilayah.kabupaten === filterKabupaten)
+      .filter((k) => !filterKecamatan || k.wilayah.kecamatan === filterKecamatan)
+      .filter((k) => !filterKelurahan || k.wilayah.kelurahan === filterKelurahan)
+      .map((k) => k.tps!)
+  )].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
 
   const filteredKoordinators = koordinators.filter((k) => {
     const matchSearch =
@@ -97,7 +107,8 @@ export default function KoordinatorClient({
     const matchKabupaten = !filterKabupaten || k.wilayah.kabupaten === filterKabupaten;
     const matchKecamatan = !filterKecamatan || k.wilayah.kecamatan === filterKecamatan;
     const matchKelurahan = !filterKelurahan || k.wilayah.kelurahan === filterKelurahan;
-    return matchSearch && matchKabupaten && matchKecamatan && matchKelurahan;
+    const matchTps = !filterTps || k.tps === filterTps;
+    return matchSearch && matchKabupaten && matchKecamatan && matchKelurahan && matchTps;
   });
 
   async function handleSubmit(e: React.FormEvent) {
@@ -247,6 +258,7 @@ export default function KoordinatorClient({
             setFilterKabupaten(e.target.value);
             setFilterKecamatan("");
             setFilterKelurahan("");
+            setFilterTps("");
           }}
           className="px-4 py-2 border border-gray-300 rounded-lg text-sm"
         >
@@ -260,6 +272,7 @@ export default function KoordinatorClient({
           onChange={(e) => {
             setFilterKecamatan(e.target.value);
             setFilterKelurahan("");
+            setFilterTps("");
           }}
           className="px-4 py-2 border border-gray-300 rounded-lg text-sm"
         >
@@ -270,12 +283,25 @@ export default function KoordinatorClient({
         </select>
         <select
           value={filterKelurahan}
-          onChange={(e) => setFilterKelurahan(e.target.value)}
+          onChange={(e) => {
+            setFilterKelurahan(e.target.value);
+            setFilterTps("");
+          }}
           className="px-4 py-2 border border-gray-300 rounded-lg text-sm"
         >
           <option value="">Semua Kelurahan</option>
           {kelurahanOptions.map((k) => (
             <option key={k} value={k}>{k}</option>
+          ))}
+        </select>
+        <select
+          value={filterTps}
+          onChange={(e) => setFilterTps(e.target.value)}
+          className="px-4 py-2 border border-gray-300 rounded-lg text-sm"
+        >
+          <option value="">Semua TPS</option>
+          {tpsOptions.map((t) => (
+            <option key={t} value={t}>{t}</option>
           ))}
         </select>
       </div>

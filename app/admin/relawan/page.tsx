@@ -8,6 +8,7 @@ export default async function AdminRelawanPage() {
       id: true,
       namaLengkap: true,
       noHp: true,
+      tps: true,
       latitude: true,
       longitude: true,
       createdAt: true,

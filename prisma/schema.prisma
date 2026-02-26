@@ -108,6 +108,7 @@ model Koordinator {
   wilayahId   String
   namaLengkap String
   noHp        String
+  tps         String?
   latitude    Float?
   longitude   Float?
   createdAt   DateTime @default(now())
@@ -128,6 +129,7 @@ model Relawan {
   wilayahId     String
   namaLengkap   String
   noHp          String
+  tps           String?
   latitude      Float?
   longitude     Float?
   createdAt     DateTime @default(now())
