@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json();
-  const { provinsi, kabupaten, kecamatan, kelurahan, kodePos } = body;
+  const { namaWilayah, provinsi, kabupaten, kecamatan, kelurahan, kodePos } = body;
 
   if (!provinsi || !kabupaten || !kecamatan || !kelurahan) {
     return NextResponse.json({ error: "Semua field wajib diisi" }, { status: 400 });
@@ -38,7 +38,14 @@ export async function POST(req: NextRequest) {
   }
 
   const wilayah = await prisma.wilayah.create({
-    data: { provinsi, kabupaten, kecamatan, kelurahan, kodePos: kodePos || null },
+    data: {
+      namaWilayah: namaWilayah || `${kabupaten} - ${kecamatan}`,
+      provinsi,
+      kabupaten,
+      kecamatan,
+      kelurahan,
+      kodePos: kodePos || null,
+    },
   });
 
   return NextResponse.json(wilayah, { status: 201 });

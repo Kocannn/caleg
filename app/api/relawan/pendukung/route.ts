@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
+import { StatusDukungan } from "@/app/generated/prisma";
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
 
@@ -79,7 +80,7 @@ export async function POST(req: NextRequest) {
       rw: rw || null,
       latitude: parseFloat(latitude) || null,
       longitude: parseFloat(longitude) || null,
-      statusDukungan: statusDukungan || "BELUM_DIKONFIRMASI",
+      statusDukungan: (statusDukungan as StatusDukungan) || "BELUM_DIKONFIRMASI",
       statusApproval: "PENDING",
       fotoRumah,
     },

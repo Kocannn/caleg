@@ -16,13 +16,6 @@ declare module "next-auth" {
   }
 }
 
-declare module "@auth/core/jwt" {
-  interface JWT {
-    role?: string;
-    username?: string;
-  }
-}
-
 export const authConfig = {
   providers: [], // Providers added in auth.ts
   callbacks: {

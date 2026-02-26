@@ -80,7 +80,7 @@ export default function CalegDashboardClient({ stats, statusCounts, wilayahStats
           <h2 className="font-semibold text-gray-900 mb-4">Sebaran Status Dukungan</h2>
           <ResponsiveContainer width="100%" height={280}>
             <PieChart>
-              <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
+              <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label={({ name, percent }: any) => `${name} ${(percent * 100).toFixed(0)}%`}>
                 {pieData.map((entry, idx) => <Cell key={idx} fill={entry.color} />)}
               </Pie>
               <Tooltip />
@@ -112,7 +112,7 @@ export default function CalegDashboardClient({ stats, statusCounts, wilayahStats
           <h2 className="font-semibold text-gray-900 mb-4">Status Approval Pendukung</h2>
           <ResponsiveContainer width="100%" height={280}>
             <PieChart>
-              <Pie data={approvalPieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
+              <Pie data={approvalPieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label={({ name, percent }: any) => `${name} ${(percent * 100).toFixed(0)}%`}>
                 {approvalPieData.map((entry, idx) => <Cell key={idx} fill={entry.color} />)}
               </Pie>
               <Tooltip />

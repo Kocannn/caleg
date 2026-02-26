@@ -26,7 +26,7 @@ export default async function KoordinatorMonitoringPage() {
     const pendukungBulanIni = r.pendukung.filter((p) => new Date(p.createdAt) >= thisMonth).length;
     const approved = r.pendukung.filter((p) => p.statusApproval === "APPROVED").length;
     const pending = r.pendukung.filter((p) => p.statusApproval === "PENDING").length;
-    const pendukungAktif = r.pendukung.filter((p) => p.statusDukungan === "PENDUKUNG").length;
+    const pendukungAktif = r.pendukung.filter((p) => p.statusDukungan === "MENDUKUNG").length;
 
     return {
       id: r.id,

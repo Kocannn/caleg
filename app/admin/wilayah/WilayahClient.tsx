@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 
 interface WilayahItem {
   id: string;
+  namaWilayah: string;
   provinsi: string;
   kabupaten: string;
   kecamatan: string;
@@ -16,7 +17,7 @@ interface WilayahItem {
 export default function WilayahClient({ initialWilayah }: { initialWilayah: WilayahItem[] }) {
   const [data, setData] = useState(initialWilayah);
   const [showModal, setShowModal] = useState(false);
-  const [form, setForm] = useState({ provinsi: "", kabupaten: "", kecamatan: "", kelurahan: "", kodePos: "" });
+  const [form, setForm] = useState({ namaWilayah: "", provinsi: "", kabupaten: "", kecamatan: "", kelurahan: "", kodePos: "" });
   const router = useRouter();
 
   async function handleSubmit(e: React.FormEvent) {
@@ -28,7 +29,7 @@ export default function WilayahClient({ initialWilayah }: { initialWilayah: Wila
     });
     if (res.ok) {
       setShowModal(false);
-      setForm({ provinsi: "", kabupaten: "", kecamatan: "", kelurahan: "", kodePos: "" });
+      setForm({ namaWilayah: "", provinsi: "", kabupaten: "", kecamatan: "", kelurahan: "", kodePos: "" });
       router.refresh();
       const updated = await fetch("/api/admin/wilayah").then((r) => r.json());
       setData(updated);
@@ -98,6 +99,10 @@ export default function WilayahClient({ initialWilayah }: { initialWilayah: Wila
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg mx-4">
             <div className="p-6 border-b"><h2 className="text-lg font-bold">Tambah Wilayah</h2></div>
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Nama Wilayah</label>
+                <input type="text" value={form.namaWilayah} onChange={(e) => setForm({ ...form, namaWilayah: e.target.value })} className="w-full px-3 py-2 border rounded-lg text-sm" placeholder="Contoh: Surabaya - Gubeng" />
+              </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Provinsi</label>
                 <input type="text" value={form.provinsi} onChange={(e) => setForm({ ...form, provinsi: e.target.value })} className="w-full px-3 py-2 border rounded-lg text-sm" required />

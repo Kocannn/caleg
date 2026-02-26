@@ -3,7 +3,7 @@
 interface StatCardProps {
   title: string;
   value: string | number;
-  icon: React.ReactNode;
+  icon?: React.ReactNode;
   color: "blue" | "green" | "yellow" | "red" | "purple" | "indigo";
   change?: string;
 }
@@ -35,7 +35,7 @@ export default function StatCard({ title, value, icon, color, change }: StatCard
           <p className="text-3xl font-bold mt-1">{value}</p>
           {change && <p className="text-xs mt-1 opacity-70">{change}</p>}
         </div>
-        <div className={`p-3 rounded-xl ${iconBgMap[color]}`}>{icon}</div>
+        {icon && <div className={`p-3 rounded-xl ${iconBgMap[color]}`}>{icon}</div>}
       </div>
     </div>
   );
