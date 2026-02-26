@@ -3,14 +3,12 @@ import StatCard from "@/components/StatCard";
 import DashboardChart from "./DashboardChart";
 
 export default async function AdminDashboard() {
-  const [userCount, pendukungCount, relawanCount, koordinatorCount, wilayahCount] = await Promise.all([
-    prisma.user.count(),
-    prisma.pendukung.count(),
-    prisma.relawan.count(),
-    prisma.koordinator.count(),
-    prisma.wilayah.count(),
-  ]);
-
+  // Sequential queries to avoid exhausting Supabase session-mode pool connections
+  const userCount = await prisma.user.count();
+  const pendukungCount = await prisma.pendukung.count();
+  const relawanCount = await prisma.relawan.count();
+  const koordinatorCount = await prisma.koordinator.count();
+  const wilayahCount = await prisma.wilayah.count();
   const pendingApproval = await prisma.pendukung.count({
     where: { statusApproval: "PENDING" },
   });

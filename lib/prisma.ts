@@ -12,7 +12,7 @@ const globalForPrisma = globalThis as unknown as {
 // Reuse pool across hot reloads to avoid exhausting Supabase session-mode limits
 const pool =
   globalForPrisma.pgPool ??
-  new pg.Pool({ connectionString, max: 5 });
+  new pg.Pool({ connectionString, max: 2 });
 
 const adapter = new PrismaPg(pool);
 export const prisma = globalForPrisma.prisma ?? new PrismaClient({ adapter });
