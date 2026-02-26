@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import StatCard from "@/components/StatCard";
+import DashboardChart from "./DashboardChart";
 
 export default async function AdminDashboard() {
   const [userCount, pendukungCount, relawanCount, koordinatorCount, wilayahCount] = await Promise.all([
@@ -78,6 +79,14 @@ export default async function AdminDashboard() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           }
+        />
+      </div>
+
+      <div className="mb-8">
+        <DashboardChart
+          pendukung={pendukungCount}
+          relawan={relawanCount}
+          koordinator={koordinatorCount}
         />
       </div>
 

@@ -1,8 +1,8 @@
 import { prisma } from "@/lib/prisma";
-import RelawanClient from "./RelawanClient";
+import KoordinatorClient from "./KoordinatorClient";
 
-export default async function AdminRelawanPage() {
-  const relawans = await prisma.relawan.findMany({
+export default async function AdminKoordinatorPage() {
+  const koordinators = await prisma.koordinator.findMany({
     orderBy: { createdAt: "desc" },
     select: {
       id: true,
@@ -19,12 +19,6 @@ export default async function AdminRelawanPage() {
           createdAt: true,
         },
       },
-      koordinator: {
-        select: {
-          id: true,
-          namaLengkap: true,
-        },
-      },
       wilayah: {
         select: {
           id: true,
@@ -34,6 +28,11 @@ export default async function AdminRelawanPage() {
           kelurahan: true,
         },
       },
+      _count: {
+        select: {
+          relawans: true,
+        },
+      },
     },
   });
 
@@ -41,24 +40,10 @@ export default async function AdminRelawanPage() {
     orderBy: [{ provinsi: "asc" }, { kabupaten: "asc" }, { kecamatan: "asc" }],
   });
 
-  const koordinatorList = await prisma.koordinator.findMany({
-    select: {
-      id: true,
-      namaLengkap: true,
-      user: {
-        select: {
-          namaLengkap: true,
-        },
-      },
-    },
-    orderBy: { namaLengkap: "asc" },
-  });
-
   return (
-    <RelawanClient
-      initialRelawans={JSON.parse(JSON.stringify(relawans))}
+    <KoordinatorClient
+      initialKoordinators={JSON.parse(JSON.stringify(koordinators))}
       wilayahList={JSON.parse(JSON.stringify(wilayahList))}
-      koordinatorList={JSON.parse(JSON.stringify(koordinatorList))}
     />
   );
 }

@@ -4,10 +4,14 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 
-const MapPicker = dynamic(() => import("@/components/MapPicker"), { ssr: false });
-const MapViewer = dynamic(() => import("@/components/MapViewer"), { ssr: false });
+const MapPicker = dynamic(() => import("@/components/MapPicker"), {
+  ssr: false,
+});
+const MapViewer = dynamic(() => import("@/components/MapViewer"), {
+  ssr: false,
+});
 
-interface Relawan {
+interface Koordinator {
   id: string;
   namaLengkap: string;
   noHp: string;
@@ -19,16 +23,15 @@ interface Relawan {
     aktif: boolean;
     createdAt: string;
   };
-  koordinator: {
-    id: string;
-    namaLengkap: string;
-  };
   wilayah: {
     id: string;
     provinsi: string;
     kabupaten: string;
     kecamatan: string;
     kelurahan: string;
+  };
+  _count: {
+    relawans: number;
   };
   createdAt: string;
 }
@@ -41,29 +44,22 @@ interface Wilayah {
   kelurahan: string;
 }
 
-interface Koordinator {
-  id: string;
-  namaLengkap: string;
-  user: { namaLengkap: string };
-}
-
-interface RelawanClientProps {
-  initialRelawans: Relawan[];
+interface KoordinatorClientProps {
+  initialKoordinators: Koordinator[];
   wilayahList: Wilayah[];
-  koordinatorList: Koordinator[];
 }
 
-export default function RelawanClient({
-  initialRelawans,
+export default function KoordinatorClient({
+  initialKoordinators,
   wilayahList,
-  koordinatorList,
-}: RelawanClientProps) {
-  const [relawans, setRelawans] = useState(initialRelawans);
+}: KoordinatorClientProps) {
+  const [koordinators, setKoordinators] = useState(initialKoordinators);
   const [showModal, setShowModal] = useState(false);
-  const [editingRelawan, setEditingRelawan] = useState<Relawan | null>(null);
+  const [editingKoordinator, setEditingKoordinator] =
+    useState<Koordinator | null>(null);
   const [search, setSearch] = useState("");
   const [filterWilayah, setFilterWilayah] = useState("");
-  const [showMap, setShowMap] = useState<Relawan | null>(null);
+  const [showMap, setShowMap] = useState<Koordinator | null>(null);
   const router = useRouter();
 
   const [form, setForm] = useState({
@@ -72,38 +68,39 @@ export default function RelawanClient({
     name: "",
     phone: "",
     wilayahId: "",
-    koordinatorId: "",
     latitude: null as number | null,
     longitude: null as number | null,
   });
 
-  const filteredRelawans = relawans.filter((r) => {
+  const filteredKoordinators = koordinators.filter((k) => {
     const matchSearch =
       !search ||
-      r.namaLengkap.toLowerCase().includes(search.toLowerCase()) ||
-      r.user.username.toLowerCase().includes(search.toLowerCase()) ||
-      r.noHp.includes(search);
+      k.namaLengkap.toLowerCase().includes(search.toLowerCase()) ||
+      k.user.username.toLowerCase().includes(search.toLowerCase()) ||
+      k.noHp.includes(search);
     const matchWilayah =
-      !filterWilayah || r.wilayah.kecamatan === filterWilayah;
+      !filterWilayah || k.wilayah.kecamatan === filterWilayah;
     return matchSearch && matchWilayah;
   });
 
   const uniqueWilayahs = Array.from(
-    new Map(relawans.map((r) => [r.wilayah.kecamatan, r.wilayah])).values()
+    new Map(
+      koordinators.map((k) => [k.wilayah.kecamatan, k.wilayah])
+    ).values()
   );
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
-    if (!form.koordinatorId || !form.wilayahId) {
-      alert("Koordinator dan Wilayah harus dipilih");
+    if (!form.wilayahId) {
+      alert("Wilayah harus dipilih");
       return;
     }
 
-    const url = editingRelawan
-      ? `/api/admin/relawan/${editingRelawan.id}`
-      : "/api/admin/relawan";
-    const method = editingRelawan ? "PUT" : "POST";
+    const url = editingKoordinator
+      ? `/api/admin/koordinator/${editingKoordinator.id}`
+      : "/api/admin/koordinator";
+    const method = editingKoordinator ? "PUT" : "POST";
 
     const res = await fetch(url, {
       method,
@@ -113,39 +110,43 @@ export default function RelawanClient({
 
     if (res.ok) {
       setShowModal(false);
-      setEditingRelawan(null);
+      setEditingKoordinator(null);
       setForm({
         username: "",
         password: "",
         name: "",
         phone: "",
         wilayahId: "",
-        koordinatorId: "",
         latitude: null,
         longitude: null,
       });
       router.refresh();
-      const data = await fetch("/api/admin/relawan").then((r) => r.json());
-      setRelawans(data);
+      const data = await fetch("/api/admin/koordinator").then((r) => r.json());
+      setKoordinators(data);
     } else {
       const err = await res.json();
-      alert(err.error || "Gagal menyimpan relawan");
+      alert(err.error || "Gagal menyimpan koordinator");
     }
   }
 
   async function handleDelete(id: string) {
-    if (!confirm("Yakin hapus relawan ini?")) return;
-    const res = await fetch(`/api/admin/relawan/${id}`, { method: "DELETE" });
+    if (!confirm("Yakin hapus koordinator ini?")) return;
+    const res = await fetch(`/api/admin/koordinator/${id}`, {
+      method: "DELETE",
+    });
     if (res.ok) {
       router.refresh();
-      setRelawans((prev) => prev.filter((r) => r.id !== id));
+      setKoordinators((prev) => prev.filter((k) => k.id !== id));
+    } else {
+      const err = await res.json();
+      alert(err.error || "Gagal menghapus koordinator");
     }
   }
 
-  async function handleResetPassword(id: string) {
+  async function handleResetPassword(userId: string) {
     const newPassword = prompt("Masukkan password baru:");
     if (!newPassword) return;
-    const res = await fetch(`/api/admin/relawan/${id}/reset-password`, {
+    const res = await fetch(`/api/admin/users/${userId}/reset-password`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ password: newPassword }),
@@ -158,44 +159,48 @@ export default function RelawanClient({
   }
 
   async function handleToggleActive(id: string, isActive: boolean) {
-    const res = await fetch(`/api/admin/relawan/${id}`, {
+    // Find koordinator to get the koordinator id (not user id)
+    const koordinator = koordinators.find((k) => k.user.id === id);
+    if (!koordinator) return;
+
+    const res = await fetch(`/api/admin/koordinator/${koordinator.id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ isActive: !isActive }),
     });
     if (res.ok) {
-      setRelawans((prev) =>
-        prev.map((r) =>
-          r.id === id ? { ...r, user: { ...r.user, aktif: !isActive } } : r
+      setKoordinators((prev) =>
+        prev.map((k) =>
+          k.user.id === id
+            ? { ...k, user: { ...k.user, aktif: !isActive } }
+            : k
         )
       );
     }
   }
 
-  function openEdit(relawan: Relawan) {
-    setEditingRelawan(relawan);
+  function openEdit(koordinator: Koordinator) {
+    setEditingKoordinator(koordinator);
     setForm({
-      username: relawan.user.username,
+      username: koordinator.user.username,
       password: "",
-      name: relawan.namaLengkap,
-      phone: relawan.noHp,
-      wilayahId: relawan.wilayah.id,
-      koordinatorId: relawan.koordinator.id,
-      latitude: relawan.latitude,
-      longitude: relawan.longitude,
+      name: koordinator.namaLengkap,
+      phone: koordinator.noHp,
+      wilayahId: koordinator.wilayah.id,
+      latitude: koordinator.latitude,
+      longitude: koordinator.longitude,
     });
     setShowModal(true);
   }
 
   function openCreate() {
-    setEditingRelawan(null);
+    setEditingKoordinator(null);
     setForm({
       username: "",
       password: "",
       name: "",
       phone: "",
       wilayahId: "",
-      koordinatorId: "",
       latitude: null,
       longitude: null,
     });
@@ -205,12 +210,14 @@ export default function RelawanClient({
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Kelola Relawan</h1>
+        <h1 className="text-2xl font-bold text-gray-900">
+          Kelola Koordinator
+        </h1>
         <button
           onClick={openCreate}
           className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium text-sm"
         >
-          + Tambah Relawan
+          + Tambah Koordinator
         </button>
       </div>
 
@@ -255,10 +262,10 @@ export default function RelawanClient({
                 No HP
               </th>
               <th className="px-4 py-3 text-left font-semibold text-gray-600">
-                Koordinator
-              </th>
-              <th className="px-4 py-3 text-left font-semibold text-gray-600">
                 Wilayah
+              </th>
+              <th className="px-4 py-3 text-center font-semibold text-gray-600">
+                Jml Relawan
               </th>
               <th className="px-4 py-3 text-left font-semibold text-gray-600">
                 Status
@@ -272,46 +279,70 @@ export default function RelawanClient({
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {filteredRelawans.map((relawan, idx) => (
-              <tr key={relawan.id} className="hover:bg-gray-50">
+            {filteredKoordinators.map((koordinator, idx) => (
+              <tr key={koordinator.id} className="hover:bg-gray-50">
                 <td className="px-4 py-3">{idx + 1}</td>
-                <td className="px-4 py-3 font-medium">{relawan.namaLengkap}</td>
-                <td className="px-4 py-3 text-gray-600">
-                  {relawan.user.username}
+                <td className="px-4 py-3 font-medium">
+                  {koordinator.namaLengkap}
                 </td>
                 <td className="px-4 py-3 text-gray-600">
-                  {relawan.noHp || "-"}
+                  {koordinator.user.username}
                 </td>
                 <td className="px-4 py-3 text-gray-600">
-                  {relawan.koordinator.namaLengkap}
+                  {koordinator.noHp || "-"}
                 </td>
                 <td className="px-4 py-3 text-gray-600">
-                  {relawan.wilayah.kecamatan},{" "}
-                  <span className="text-xs">{relawan.wilayah.kabupaten}</span>
+                  {koordinator.wilayah.kecamatan},{" "}
+                  <span className="text-xs">
+                    {koordinator.wilayah.kabupaten}
+                  </span>
+                </td>
+                <td className="px-4 py-3 text-center">
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                    {koordinator._count.relawans}
+                  </span>
                 </td>
                 <td className="px-4 py-3">
                   <button
                     onClick={() =>
-                      handleToggleActive(relawan.user.id, relawan.user.aktif)
+                      handleToggleActive(
+                        koordinator.user.id,
+                        koordinator.user.aktif
+                      )
                     }
                     className={`px-2 py-1 rounded-full text-xs font-medium cursor-pointer ${
-                      relawan.user.aktif
+                      koordinator.user.aktif
                         ? "bg-green-100 text-green-700"
                         : "bg-gray-100 text-gray-600"
                     }`}
                   >
-                    {relawan.user.aktif ? "Aktif" : "Nonaktif"}
+                    {koordinator.user.aktif ? "Aktif" : "Nonaktif"}
                   </button>
                 </td>
                 <td className="px-4 py-3 text-center">
-                  {relawan.latitude && relawan.longitude ? (
+                  {koordinator.latitude && koordinator.longitude ? (
                     <button
-                      onClick={() => setShowMap(relawan)}
+                      onClick={() => setShowMap(koordinator)}
                       className="px-2 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700 inline-flex items-center gap-1"
                     >
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <svg
+                        className="w-3.5 h-3.5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                        />
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                        />
                       </svg>
                       Lihat
                     </button>
@@ -322,7 +353,7 @@ export default function RelawanClient({
                 <td className="px-4 py-3">
                   <div className="flex items-center justify-center gap-1">
                     <button
-                      onClick={() => openEdit(relawan)}
+                      onClick={() => openEdit(koordinator)}
                       className="p-1.5 text-blue-600 hover:bg-blue-50 rounded"
                       title="Edit"
                     >
@@ -341,7 +372,9 @@ export default function RelawanClient({
                       </svg>
                     </button>
                     <button
-                      onClick={() => handleResetPassword(relawan.user.id)}
+                      onClick={() =>
+                        handleResetPassword(koordinator.user.id)
+                      }
                       className="p-1.5 text-yellow-600 hover:bg-yellow-50 rounded"
                       title="Reset Password"
                     >
@@ -360,7 +393,7 @@ export default function RelawanClient({
                       </svg>
                     </button>
                     <button
-                      onClick={() => handleDelete(relawan.id)}
+                      onClick={() => handleDelete(koordinator.id)}
                       className="p-1.5 text-red-600 hover:bg-red-50 rounded"
                       title="Hapus"
                     >
@@ -392,7 +425,9 @@ export default function RelawanClient({
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b">
               <h2 className="text-lg font-bold">
-                {editingRelawan ? "Edit Relawan" : "Tambah Relawan Baru"}
+                {editingKoordinator
+                  ? "Edit Koordinator"
+                  : "Tambah Koordinator Baru"}
               </h2>
             </div>
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
@@ -423,11 +458,11 @@ export default function RelawanClient({
                     }
                     className="w-full px-3 py-2 border rounded-lg text-sm"
                     required
-                    disabled={!!editingRelawan}
+                    disabled={!!editingKoordinator}
                   />
                 </div>
               </div>
-              {!editingRelawan && (
+              {!editingKoordinator && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Password
@@ -439,7 +474,7 @@ export default function RelawanClient({
                       setForm({ ...form, password: e.target.value })
                     }
                     className="w-full px-3 py-2 border rounded-lg text-sm"
-                    required={!editingRelawan}
+                    required={!editingKoordinator}
                   />
                 </div>
               )}
@@ -455,26 +490,6 @@ export default function RelawanClient({
                   }
                   className="w-full px-3 py-2 border rounded-lg text-sm"
                 />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Koordinator
-                </label>
-                <select
-                  value={form.koordinatorId}
-                  onChange={(e) =>
-                    setForm({ ...form, koordinatorId: e.target.value })
-                  }
-                  className="w-full px-3 py-2 border rounded-lg text-sm"
-                  required
-                >
-                  <option value="">Pilih Koordinator</option>
-                  {koordinatorList.map((k) => (
-                    <option key={k.id} value={k.id}>
-                      {k.namaLengkap}
-                    </option>
-                  ))}
-                </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -509,7 +524,8 @@ export default function RelawanClient({
                 />
                 {form.latitude && form.longitude && (
                   <p className="text-xs text-gray-500 mt-1">
-                    Lat: {form.latitude.toFixed(6)}, Lng: {form.longitude.toFixed(6)}
+                    Lat: {form.latitude.toFixed(6)}, Lng:{" "}
+                    {form.longitude.toFixed(6)}
                   </p>
                 )}
               </div>
@@ -518,13 +534,13 @@ export default function RelawanClient({
                   type="submit"
                   className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium text-sm"
                 >
-                  {editingRelawan ? "Update" : "Simpan"}
+                  {editingKoordinator ? "Update" : "Simpan"}
                 </button>
                 <button
                   type="button"
                   onClick={() => {
                     setShowModal(false);
-                    setEditingRelawan(null);
+                    setEditingKoordinator(null);
                   }}
                   className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-medium text-sm"
                 >
@@ -538,18 +554,40 @@ export default function RelawanClient({
 
       {/* Map Location Modal */}
       {showMap && showMap.latitude && showMap.longitude && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowMap(null)}>
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl mx-4" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+          onClick={() => setShowMap(null)}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-xl w-full max-w-2xl mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="p-4 border-b flex items-center justify-between">
               <div>
-                <h2 className="text-lg font-bold">Lokasi Rumah - {showMap.namaLengkap}</h2>
+                <h2 className="text-lg font-bold">
+                  Lokasi Rumah - {showMap.namaLengkap}
+                </h2>
                 <p className="text-xs text-gray-500">
-                  {showMap.wilayah.kecamatan}, {showMap.wilayah.kelurahan} - {showMap.wilayah.kabupaten}
+                  {showMap.wilayah.kecamatan}, {showMap.wilayah.kelurahan} -{" "}
+                  {showMap.wilayah.kabupaten}
                 </p>
               </div>
-              <button onClick={() => setShowMap(null)} className="p-1 hover:bg-gray-100 rounded-full">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <button
+                onClick={() => setShowMap(null)}
+                className="p-1 hover:bg-gray-100 rounded-full"
+              >
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
                 </svg>
               </button>
             </div>

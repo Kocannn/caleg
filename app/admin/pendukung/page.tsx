@@ -14,6 +14,7 @@ export default async function AdminPendukungPage() {
       statusApproval: true,
       latitude: true,
       longitude: true,
+      tps: true,
       fotoRumah: true,
       createdAt: true,
       relawan: { select: { namaLengkap: true } },

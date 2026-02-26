@@ -9,7 +9,7 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const relawans = await prisma.relawan.findMany({
+  const koordinators = await prisma.koordinator.findMany({
     include: {
       user: {
         select: {
@@ -17,12 +17,6 @@ export async function GET() {
           username: true,
           aktif: true,
           createdAt: true,
-        },
-      },
-      koordinator: {
-        select: {
-          id: true,
-          namaLengkap: true,
         },
       },
       wilayah: {
@@ -34,11 +28,16 @@ export async function GET() {
           kelurahan: true,
         },
       },
+      _count: {
+        select: {
+          relawans: true,
+        },
+      },
     },
     orderBy: { createdAt: "desc" },
   });
 
-  return NextResponse.json(relawans);
+  return NextResponse.json(koordinators);
 }
 
 export async function POST(req: NextRequest) {
@@ -48,9 +47,9 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json();
-  const { username, password, name, phone, wilayahId, koordinatorId, latitude, longitude } = body;
+  const { username, password, name, phone, wilayahId, latitude, longitude } = body;
 
-  if (!username || !password || !name || !wilayahId || !koordinatorId) {
+  if (!username || !password || !name || !wilayahId) {
     return NextResponse.json(
       { error: "Field wajib harus diisi" },
       { status: 400 }
@@ -66,7 +65,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Create user and relawan in a transaction
+  // Create user and koordinator in a transaction
   const result = await prisma.$transaction(async (tx) => {
     const user = await tx.user.create({
       data: {
@@ -74,14 +73,13 @@ export async function POST(req: NextRequest) {
         password: hashSync(password, 10),
         namaLengkap: name,
         nomorHp: phone || null,
-        role: "RELAWAN",
+        role: "KOORDINATOR",
       },
     });
 
-    const relawan = await tx.relawan.create({
+    const koordinator = await tx.koordinator.create({
       data: {
         userId: user.id,
-        koordinatorId,
         wilayahId,
         namaLengkap: name,
         noHp: phone || "",
@@ -97,12 +95,6 @@ export async function POST(req: NextRequest) {
             createdAt: true,
           },
         },
-        koordinator: {
-          select: {
-            id: true,
-            namaLengkap: true,
-          },
-        },
         wilayah: {
           select: {
             id: true,
@@ -112,10 +104,15 @@ export async function POST(req: NextRequest) {
             kelurahan: true,
           },
         },
+        _count: {
+          select: {
+            relawans: true,
+          },
+        },
       },
     });
 
-    return relawan;
+    return koordinator;
   });
 
   return NextResponse.json(result, { status: 201 });
