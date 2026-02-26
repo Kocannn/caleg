@@ -15,6 +15,7 @@ interface PendukungItem {
   statusApproval: string;
   latitude: number | null;
   longitude: number | null;
+  tps: string | null;
   fotoRumah: string | null;
   createdAt: string;
   relawan: { namaLengkap: string };
@@ -37,17 +38,45 @@ const statusColors: Record<string, string> = {
 
 export default function PendukungClient({ initialData, wilayahList }: { initialData: PendukungItem[]; wilayahList: Wilayah[] }) {
   const [data, setData] = useState(initialData);
-  const [filterWilayah, setFilterWilayah] = useState("");
+  const [filterKabupaten, setFilterKabupaten] = useState("");
+  const [filterKecamatan, setFilterKecamatan] = useState("");
+  const [filterKelurahan, setFilterKelurahan] = useState("");
+  const [filterTps, setFilterTps] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
   const [search, setSearch] = useState("");
   const [showPhoto, setShowPhoto] = useState<PendukungItem | null>(null);
   const [showMap, setShowMap] = useState<PendukungItem | null>(null);
 
+  // Cascading options
+  const kabupatenOptions = [...new Set(wilayahList.map((w) => w.kabupaten))].sort();
+  const kecamatanOptions = [...new Set(
+    wilayahList
+      .filter((w) => !filterKabupaten || w.kabupaten === filterKabupaten)
+      .map((w) => w.kecamatan)
+  )].sort();
+  const kelurahanOptions = [...new Set(
+    wilayahList
+      .filter((w) => !filterKabupaten || w.kabupaten === filterKabupaten)
+      .filter((w) => !filterKecamatan || w.kecamatan === filterKecamatan)
+      .map((w) => w.kelurahan)
+  )].sort();
+  const tpsOptions = [...new Set(
+    data
+      .filter((p) => p.tps)
+      .filter((p) => !filterKabupaten || p.wilayah.kabupaten === filterKabupaten)
+      .filter((p) => !filterKecamatan || p.wilayah.kecamatan === filterKecamatan)
+      .filter((p) => !filterKelurahan || p.wilayah.kelurahan === filterKelurahan)
+      .map((p) => p.tps!)
+  )].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+
   const filtered = data.filter((p) => {
-    const matchWilayah = !filterWilayah || p.wilayah.kecamatan === filterWilayah;
+    const matchKabupaten = !filterKabupaten || p.wilayah.kabupaten === filterKabupaten;
+    const matchKecamatan = !filterKecamatan || p.wilayah.kecamatan === filterKecamatan;
+    const matchKelurahan = !filterKelurahan || p.wilayah.kelurahan === filterKelurahan;
+    const matchTps = !filterTps || p.tps === filterTps;
     const matchStatus = !filterStatus || p.statusDukungan === filterStatus;
     const matchSearch = !search || p.namaLengkap.toLowerCase().includes(search.toLowerCase()) || p.nik.includes(search);
-    return matchWilayah && matchStatus && matchSearch;
+    return matchKabupaten && matchKecamatan && matchKelurahan && matchTps && matchStatus && matchSearch;
   });
 
   return (
@@ -56,10 +85,56 @@ export default function PendukungClient({ initialData, wilayahList }: { initialD
 
       <div className="flex flex-wrap gap-3 mb-4">
         <input type="text" placeholder="Cari nama / NIK..." value={search} onChange={(e) => setSearch(e.target.value)} className="px-4 py-2 border border-gray-300 rounded-lg text-sm" />
-        <select value={filterWilayah} onChange={(e) => setFilterWilayah(e.target.value)} className="px-4 py-2 border border-gray-300 rounded-lg text-sm">
-          <option value="">Semua Wilayah</option>
-          {[...new Set(wilayahList.map((w) => w.kecamatan))].map((k) => (
+        <select
+          value={filterKabupaten}
+          onChange={(e) => {
+            setFilterKabupaten(e.target.value);
+            setFilterKecamatan("");
+            setFilterKelurahan("");
+            setFilterTps("");
+          }}
+          className="px-4 py-2 border border-gray-300 rounded-lg text-sm"
+        >
+          <option value="">Semua Kabupaten/Kota</option>
+          {kabupatenOptions.map((k) => (
             <option key={k} value={k}>{k}</option>
+          ))}
+        </select>
+        <select
+          value={filterKecamatan}
+          onChange={(e) => {
+            setFilterKecamatan(e.target.value);
+            setFilterKelurahan("");
+            setFilterTps("");
+          }}
+          className="px-4 py-2 border border-gray-300 rounded-lg text-sm"
+        >
+          <option value="">Semua Kecamatan</option>
+          {kecamatanOptions.map((k) => (
+            <option key={k} value={k}>{k}</option>
+          ))}
+        </select>
+        <select
+          value={filterKelurahan}
+          onChange={(e) => {
+            setFilterKelurahan(e.target.value);
+            setFilterTps("");
+          }}
+          className="px-4 py-2 border border-gray-300 rounded-lg text-sm"
+        >
+          <option value="">Semua Kelurahan</option>
+          {kelurahanOptions.map((k) => (
+            <option key={k} value={k}>{k}</option>
+          ))}
+        </select>
+        <select
+          value={filterTps}
+          onChange={(e) => setFilterTps(e.target.value)}
+          className="px-4 py-2 border border-gray-300 rounded-lg text-sm"
+        >
+          <option value="">Semua TPS</option>
+          {tpsOptions.map((t) => (
+            <option key={t} value={t}>{t}</option>
           ))}
         </select>
         <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="px-4 py-2 border border-gray-300 rounded-lg text-sm">
@@ -91,7 +166,10 @@ export default function PendukungClient({ initialData, wilayahList }: { initialD
                 <td className="px-4 py-3">{idx + 1}</td>
                 <td className="px-4 py-3 font-medium">{p.namaLengkap}</td>
                 <td className="px-4 py-3 text-gray-600 font-mono text-xs">{p.nik}</td>
-                <td className="px-4 py-3 text-gray-600 text-xs">{p.wilayah.kecamatan}, {p.wilayah.kelurahan}</td>
+                <td className="px-4 py-3 text-gray-600 text-xs">
+                  {p.wilayah.kabupaten}, {p.wilayah.kecamatan}, {p.wilayah.kelurahan}
+                  {p.tps && <span className="block text-gray-400">TPS: {p.tps}</span>}
+                </td>
                 <td className="px-4 py-3 text-gray-600">{p.relawan.namaLengkap}</td>
                 <td className="px-4 py-3">
                   <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColors[p.statusDukungan]}`}>

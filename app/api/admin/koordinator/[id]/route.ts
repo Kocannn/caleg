@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { hashSync } from "bcryptjs";
 import { auth } from "@/auth";
 
-export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function PUT(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   const session = await auth();
   if (!session || session.user.role !== "ADMIN") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -12,18 +14,17 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   const { id } = await params;
   const body = await req.json();
 
-  const { name, phone, wilayahId, koordinatorId, isActive, latitude, longitude } = body;
+  const { name, phone, wilayahId, isActive, latitude, longitude } = body;
 
-  // Update relawan table
+  // Update koordinator table
   const updateData: Record<string, unknown> = {};
   if (name !== undefined) updateData.namaLengkap = name;
   if (phone !== undefined) updateData.noHp = phone;
   if (wilayahId !== undefined) updateData.wilayahId = wilayahId;
-  if (koordinatorId !== undefined) updateData.koordinatorId = koordinatorId;
   if (latitude !== undefined) updateData.latitude = latitude;
   if (longitude !== undefined) updateData.longitude = longitude;
 
-  const relawan = await prisma.relawan.update({
+  const koordinator = await prisma.koordinator.update({
     where: { id },
     data: updateData,
     include: {
@@ -35,12 +36,6 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
           createdAt: true,
         },
       },
-      koordinator: {
-        select: {
-          id: true,
-          namaLengkap: true,
-        },
-      },
       wilayah: {
         select: {
           id: true,
@@ -50,21 +45,37 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
           kelurahan: true,
         },
       },
+      _count: {
+        select: {
+          relawans: true,
+        },
+      },
     },
   });
 
   // Update user table if needed
   if (isActive !== undefined) {
     await prisma.user.update({
-      where: { id: relawan.userId },
+      where: { id: koordinator.userId },
       data: { aktif: isActive },
     });
   }
 
-  return NextResponse.json(relawan);
+  // Update user name if changed
+  if (name !== undefined) {
+    await prisma.user.update({
+      where: { id: koordinator.userId },
+      data: { namaLengkap: name },
+    });
+  }
+
+  return NextResponse.json(koordinator);
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   const session = await auth();
   if (!session || session.user.role !== "ADMIN") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -72,10 +83,28 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
 
   const { id } = await params;
 
-  // Delete relawan (will cascade to user due to onDelete: Cascade)
-  await prisma.relawan.delete({
+  // Check if koordinator has relawans
+  const koordinator = await prisma.koordinator.findUnique({
     where: { id },
+    include: { _count: { select: { relawans: true } } },
   });
+
+  if (koordinator && koordinator._count.relawans > 0) {
+    return NextResponse.json(
+      {
+        error: `Koordinator masih memiliki ${koordinator._count.relawans} relawan. Pindahkan relawan terlebih dahulu.`,
+      },
+      { status: 400 }
+    );
+  }
+
+  // Delete koordinator and user
+  if (koordinator) {
+    await prisma.$transaction(async (tx) => {
+      await tx.koordinator.delete({ where: { id } });
+      await tx.user.delete({ where: { id: koordinator.userId } });
+    });
+  }
 
   return NextResponse.json({ success: true });
 }

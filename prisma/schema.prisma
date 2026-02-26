@@ -108,6 +108,8 @@ model Koordinator {
   wilayahId   String
   namaLengkap String
   noHp        String
+  latitude    Float?
+  longitude   Float?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -126,6 +128,8 @@ model Relawan {
   wilayahId     String
   namaLengkap   String
   noHp          String
+  latitude      Float?
+  longitude     Float?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -149,6 +153,7 @@ model Pendukung {
   alamat          String
   rt              String?
   rw              String?
+  tps             String?
   latitude        Float?
   longitude       Float?
   fotoRumah       String?
