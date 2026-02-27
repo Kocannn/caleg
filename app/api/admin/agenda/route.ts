@@ -2,6 +2,23 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 
+// Helper to serialize BigInt fields to string for JSON responses
+function serializeAgenda(agenda: Record<string, unknown>) {
+  return {
+    ...agenda,
+    id: String(agenda.id),
+    dibuatOleh: agenda.dibuatOleh ? String(agenda.dibuatOleh) : null,
+    respon: Array.isArray(agenda.respon)
+      ? (agenda.respon as Record<string, unknown>[]).map((r) => ({
+          ...r,
+          id: String(r.id),
+          agendaId: String(r.agendaId),
+          calegId: String(r.calegId),
+        }))
+      : undefined,
+  };
+}
+
 export async function GET() {
   const session = await auth();
   if (!session || session.user.role !== "ADMIN") {
@@ -10,9 +27,12 @@ export async function GET() {
 
   const agendas = await prisma.agendaKegiatan.findMany({
     orderBy: { tanggal: "desc" },
+    include: { respon: true },
   });
 
-  return NextResponse.json(agendas);
+  return NextResponse.json(
+    agendas.map((a) => serializeAgenda(a as unknown as Record<string, unknown>))
+  );
 }
 
 export async function POST(req: NextRequest) {
@@ -41,7 +61,11 @@ export async function POST(req: NextRequest) {
       waktuSelesai: new Date(waktuSelesai),
       statusAktif: statusAktif ?? true,
     },
+    include: { respon: true },
   });
 
-  return NextResponse.json(agenda, { status: 201 });
+  return NextResponse.json(
+    serializeAgenda(agenda as unknown as Record<string, unknown>),
+    { status: 201 }
+  );
 }

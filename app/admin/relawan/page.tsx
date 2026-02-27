@@ -55,11 +55,24 @@ export default async function AdminRelawanPage() {
     orderBy: { namaLengkap: "asc" },
   });
 
+  const tpsList = await prisma.quickCountTps.findMany({
+    orderBy: [{ wilayah: { kecamatan: "asc" } }, { nomorTps: "asc" }],
+    select: {
+      id: true,
+      nomorTps: true,
+      wilayahId: true,
+      wilayah: {
+        select: { kelurahan: true, kecamatan: true },
+      },
+    },
+  });
+
   return (
     <RelawanClient
       initialRelawans={JSON.parse(JSON.stringify(relawans))}
       wilayahList={JSON.parse(JSON.stringify(wilayahList))}
       koordinatorList={JSON.parse(JSON.stringify(koordinatorList))}
+      tpsList={JSON.parse(JSON.stringify(tpsList))}
     />
   );
 }

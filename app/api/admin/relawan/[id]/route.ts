@@ -12,7 +12,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   const { id } = await params;
   const body = await req.json();
 
-  const { name, phone, wilayahId, koordinatorId, isActive, latitude, longitude } = body;
+  const { name, phone, tps, wilayahId, koordinatorId, isActive, latitude, longitude } = body;
 
   // Update relawan table
   const updateData: Record<string, unknown> = {};
@@ -20,6 +20,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   if (phone !== undefined) updateData.noHp = phone;
   if (wilayahId !== undefined) updateData.wilayahId = wilayahId;
   if (koordinatorId !== undefined) updateData.koordinatorId = koordinatorId;
+  if (tps !== undefined) updateData.tps = tps || null;
   if (latitude !== undefined) updateData.latitude = latitude;
   if (longitude !== undefined) updateData.longitude = longitude;
 
@@ -58,6 +59,14 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     await prisma.user.update({
       where: { id: relawan.userId },
       data: { aktif: isActive },
+    });
+  }
+
+  // Sync namaLengkap to user table
+  if (name !== undefined) {
+    await prisma.user.update({
+      where: { id: relawan.userId },
+      data: { namaLengkap: name },
     });
   }
 

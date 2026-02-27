@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
+import WilayahDistributionChart, { computeWilayahChartData } from "@/components/WilayahDistributionChart";
 
 const MapPicker = dynamic(() => import("@/components/MapPicker"), { ssr: false });
 const MapViewer = dynamic(() => import("@/components/MapViewer"), { ssr: false });
@@ -48,16 +49,25 @@ interface Koordinator {
   user: { namaLengkap: string };
 }
 
+interface TpsOption {
+  id: string;
+  nomorTps: string;
+  wilayahId: string;
+  wilayah: { kelurahan: string; kecamatan: string };
+}
+
 interface RelawanClientProps {
   initialRelawans: Relawan[];
   wilayahList: Wilayah[];
   koordinatorList: Koordinator[];
+  tpsList: TpsOption[];
 }
 
 export default function RelawanClient({
   initialRelawans,
   wilayahList,
   koordinatorList,
+  tpsList,
 }: RelawanClientProps) {
   const [relawans, setRelawans] = useState(initialRelawans);
   const [showModal, setShowModal] = useState(false);
@@ -75,6 +85,7 @@ export default function RelawanClient({
     password: "",
     name: "",
     phone: "",
+    tps: "",
     wilayahId: "",
     koordinatorId: "",
     latitude: null as number | null,
@@ -143,6 +154,7 @@ export default function RelawanClient({
         password: "",
         name: "",
         phone: "",
+        tps: "",
         wilayahId: "",
         koordinatorId: "",
         latitude: null,
@@ -203,6 +215,7 @@ export default function RelawanClient({
       password: "",
       name: relawan.namaLengkap,
       phone: relawan.noHp,
+      tps: relawan.tps || "",
       wilayahId: relawan.wilayah.id,
       koordinatorId: relawan.koordinator.id,
       latitude: relawan.latitude,
@@ -218,6 +231,7 @@ export default function RelawanClient({
       password: "",
       name: "",
       phone: "",
+      tps: "",
       wilayahId: "",
       koordinatorId: "",
       latitude: null,
@@ -301,6 +315,9 @@ export default function RelawanClient({
         </select>
       </div>
 
+      {/* Chart */}
+      <RelawanChart filteredRelawans={filteredRelawans} filterKabupaten={filterKabupaten} filterKecamatan={filterKecamatan} filterKelurahan={filterKelurahan} />
+
       {/* Table */}
       <div className="bg-white rounded-xl border border-gray-200 overflow-x-auto">
         <table className="w-full text-sm">
@@ -323,6 +340,9 @@ export default function RelawanClient({
               </th>
               <th className="px-4 py-3 text-left font-semibold text-gray-600">
                 Wilayah
+              </th>
+              <th className="px-4 py-3 text-left font-semibold text-gray-600">
+                TPS
               </th>
               <th className="px-4 py-3 text-left font-semibold text-gray-600">
                 Status
@@ -352,6 +372,9 @@ export default function RelawanClient({
                 <td className="px-4 py-3 text-gray-600">
                   {relawan.wilayah.kecamatan},{" "}
                   <span className="text-xs">{relawan.wilayah.kabupaten}</span>
+                </td>
+                <td className="px-4 py-3 text-gray-600">
+                  {relawan.tps || <span className="text-xs text-gray-400">-</span>}
                 </td>
                 <td className="px-4 py-3">
                   <button
@@ -522,6 +545,27 @@ export default function RelawanClient({
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
+                  TPS
+                </label>
+                <select
+                  value={form.tps}
+                  onChange={(e) =>
+                    setForm({ ...form, tps: e.target.value })
+                  }
+                  className="w-full px-3 py-2 border rounded-lg text-sm"
+                >
+                  <option value="">Pilih TPS</option>
+                  {tpsList
+                    .filter((t) => !form.wilayahId || t.wilayahId === form.wilayahId)
+                    .map((t) => (
+                      <option key={t.id} value={t.nomorTps}>
+                        {t.nomorTps} - {t.wilayah.kelurahan}, {t.wilayah.kecamatan}
+                      </option>
+                    ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
                   Koordinator
                 </label>
                 <select
@@ -628,5 +672,44 @@ export default function RelawanClient({
         </div>
       )}
     </div>
+  );
+}
+
+// Chart sub-component
+function RelawanChart({
+  filteredRelawans,
+  filterKabupaten,
+  filterKecamatan,
+  filterKelurahan,
+}: {
+  filteredRelawans: Relawan[];
+  filterKabupaten: string;
+  filterKecamatan: string;
+  filterKelurahan: string;
+}) {
+  const { data, levelLabel } = useMemo(
+    () =>
+      computeWilayahChartData({
+        items: filteredRelawans,
+        filterKabupaten,
+        filterKecamatan,
+        filterKelurahan,
+      }),
+    [filteredRelawans, filterKabupaten, filterKecamatan, filterKelurahan]
+  );
+
+  const filterInfo = [
+    filterKabupaten,
+    filterKecamatan,
+    filterKelurahan,
+  ].filter(Boolean).join(" > ") || "Semua Wilayah";
+
+  return (
+    <WilayahDistributionChart
+      data={data}
+      title={`Distribusi Relawan per ${levelLabel}`}
+      subtitle={`Filter: ${filterInfo}`}
+      color="#a855f7"
+    />
   );
 }
