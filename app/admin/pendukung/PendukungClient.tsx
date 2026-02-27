@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import dynamic from "next/dynamic";
+import WilayahDistributionChart, { computeWilayahChartData, StatusDistributionChart } from "@/components/WilayahDistributionChart";
 
 const MapViewer = dynamic(() => import("@/components/MapViewer"), { ssr: false });
 
@@ -146,6 +147,9 @@ export default function PendukungClient({ initialData, wilayahList }: { initialD
         </select>
       </div>
 
+      {/* Charts */}
+      <PendukungCharts filtered={filtered} filterKabupaten={filterKabupaten} filterKecamatan={filterKecamatan} filterKelurahan={filterKelurahan} />
+
       <div className="bg-white rounded-xl border border-gray-200 overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
@@ -253,6 +257,77 @@ export default function PendukungClient({ initialData, wilayahList }: { initialD
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+const STATUS_COLORS: Record<string, string> = {
+  MENDUKUNG: "#22c55e",
+  RAGU: "#f59e0b",
+  TIDAK_MENDUKUNG: "#ef4444",
+  BELUM_DIKONFIRMASI: "#9ca3af",
+};
+
+const STATUS_LABELS: Record<string, string> = {
+  MENDUKUNG: "Mendukung",
+  RAGU: "Ragu",
+  TIDAK_MENDUKUNG: "Tidak Mendukung",
+  BELUM_DIKONFIRMASI: "Belum Dikonfirmasi",
+};
+
+// Chart sub-component for Pendukung
+function PendukungCharts({
+  filtered,
+  filterKabupaten,
+  filterKecamatan,
+  filterKelurahan,
+}: {
+  filtered: PendukungItem[];
+  filterKabupaten: string;
+  filterKecamatan: string;
+  filterKelurahan: string;
+}) {
+  const { data, levelLabel } = useMemo(
+    () =>
+      computeWilayahChartData({
+        items: filtered,
+        filterKabupaten,
+        filterKecamatan,
+        filterKelurahan,
+      }),
+    [filtered, filterKabupaten, filterKecamatan, filterKelurahan]
+  );
+
+  const statusData = useMemo(() => {
+    const counts: Record<string, number> = {};
+    filtered.forEach((p) => {
+      counts[p.statusDukungan] = (counts[p.statusDukungan] || 0) + 1;
+    });
+    return Object.entries(counts).map(([status, value]) => ({
+      name: STATUS_LABELS[status] || status,
+      value,
+      color: STATUS_COLORS[status] || "#6b7280",
+    }));
+  }, [filtered]);
+
+  const filterInfo = [
+    filterKabupaten,
+    filterKecamatan,
+    filterKelurahan,
+  ].filter(Boolean).join(" > ") || "Semua Wilayah";
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <WilayahDistributionChart
+        data={data}
+        title={`Distribusi Pendukung per ${levelLabel}`}
+        subtitle={`Filter: ${filterInfo}`}
+        color="#22c55e"
+      />
+      <StatusDistributionChart
+        data={statusData}
+        title="Distribusi Status Dukungan"
+      />
     </div>
   );
 }

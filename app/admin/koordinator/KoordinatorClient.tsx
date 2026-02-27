@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
+import WilayahDistributionChart, { computeWilayahChartData } from "@/components/WilayahDistributionChart";
 
 const MapPicker = dynamic(() => import("@/components/MapPicker"), {
   ssr: false,
@@ -48,11 +49,20 @@ interface Wilayah {
 interface KoordinatorClientProps {
   initialKoordinators: Koordinator[];
   wilayahList: Wilayah[];
+  tpsList: TpsOption[];
+}
+
+interface TpsOption {
+  id: string;
+  nomorTps: string;
+  wilayahId: string;
+  wilayah: { kelurahan: string; kecamatan: string };
 }
 
 export default function KoordinatorClient({
   initialKoordinators,
   wilayahList,
+  tpsList,
 }: KoordinatorClientProps) {
   const [koordinators, setKoordinators] = useState(initialKoordinators);
   const [showModal, setShowModal] = useState(false);
@@ -71,6 +81,7 @@ export default function KoordinatorClient({
     password: "",
     name: "",
     phone: "",
+    tps: "",
     wilayahId: "",
     latitude: null as number | null,
     longitude: null as number | null,
@@ -138,6 +149,7 @@ export default function KoordinatorClient({
         password: "",
         name: "",
         phone: "",
+        tps: "",
         wilayahId: "",
         latitude: null,
         longitude: null,
@@ -208,6 +220,7 @@ export default function KoordinatorClient({
       password: "",
       name: koordinator.namaLengkap,
       phone: koordinator.noHp,
+      tps: koordinator.tps || "",
       wilayahId: koordinator.wilayah.id,
       latitude: koordinator.latitude,
       longitude: koordinator.longitude,
@@ -222,6 +235,7 @@ export default function KoordinatorClient({
       password: "",
       name: "",
       phone: "",
+      tps: "",
       wilayahId: "",
       latitude: null,
       longitude: null,
@@ -306,6 +320,9 @@ export default function KoordinatorClient({
         </select>
       </div>
 
+      {/* Chart */}
+      <KoordinatorChart filteredKoordinators={filteredKoordinators} filterKabupaten={filterKabupaten} filterKecamatan={filterKecamatan} filterKelurahan={filterKelurahan} />
+
       {/* Table */}
       <div className="bg-white rounded-xl border border-gray-200 overflow-x-auto">
         <table className="w-full text-sm">
@@ -325,6 +342,9 @@ export default function KoordinatorClient({
               </th>
               <th className="px-4 py-3 text-left font-semibold text-gray-600">
                 Wilayah
+              </th>
+              <th className="px-4 py-3 text-left font-semibold text-gray-600">
+                TPS
               </th>
               <th className="px-4 py-3 text-center font-semibold text-gray-600">
                 Jml Relawan
@@ -358,6 +378,9 @@ export default function KoordinatorClient({
                   <span className="text-xs">
                     {koordinator.wilayah.kabupaten}
                   </span>
+                </td>
+                <td className="px-4 py-3 text-gray-600">
+                  {koordinator.tps || <span className="text-xs text-gray-400">-</span>}
                 </td>
                 <td className="px-4 py-3 text-center">
                   <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
@@ -555,6 +578,27 @@ export default function KoordinatorClient({
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
+                  TPS
+                </label>
+                <select
+                  value={form.tps}
+                  onChange={(e) =>
+                    setForm({ ...form, tps: e.target.value })
+                  }
+                  className="w-full px-3 py-2 border rounded-lg text-sm"
+                >
+                  <option value="">Pilih TPS</option>
+                  {tpsList
+                    .filter((t) => !form.wilayahId || t.wilayahId === form.wilayahId)
+                    .map((t) => (
+                      <option key={t.id} value={t.nomorTps}>
+                        {t.nomorTps} - {t.wilayah.kelurahan}, {t.wilayah.kecamatan}
+                      </option>
+                    ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
                   Wilayah
                 </label>
                 <select
@@ -664,5 +708,44 @@ export default function KoordinatorClient({
         </div>
       )}
     </div>
+  );
+}
+
+// Chart sub-component
+function KoordinatorChart({
+  filteredKoordinators,
+  filterKabupaten,
+  filterKecamatan,
+  filterKelurahan,
+}: {
+  filteredKoordinators: Koordinator[];
+  filterKabupaten: string;
+  filterKecamatan: string;
+  filterKelurahan: string;
+}) {
+  const { data, levelLabel } = useMemo(
+    () =>
+      computeWilayahChartData({
+        items: filteredKoordinators,
+        filterKabupaten,
+        filterKecamatan,
+        filterKelurahan,
+      }),
+    [filteredKoordinators, filterKabupaten, filterKecamatan, filterKelurahan]
+  );
+
+  const filterInfo = [
+    filterKabupaten,
+    filterKecamatan,
+    filterKelurahan,
+  ].filter(Boolean).join(" > ") || "Semua Wilayah";
+
+  return (
+    <WilayahDistributionChart
+      data={data}
+      title={`Distribusi Koordinator per ${levelLabel}`}
+      subtitle={`Filter: ${filterInfo}`}
+      color="#6366f1"
+    />
   );
 }

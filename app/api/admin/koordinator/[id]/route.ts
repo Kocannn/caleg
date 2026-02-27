@@ -14,13 +14,14 @@ export async function PUT(
   const { id } = await params;
   const body = await req.json();
 
-  const { name, phone, wilayahId, isActive, latitude, longitude } = body;
+  const { name, phone, tps, wilayahId, isActive, latitude, longitude } = body;
 
   // Update koordinator table
   const updateData: Record<string, unknown> = {};
   if (name !== undefined) updateData.namaLengkap = name;
   if (phone !== undefined) updateData.noHp = phone;
   if (wilayahId !== undefined) updateData.wilayahId = wilayahId;
+  if (tps !== undefined) updateData.tps = tps || null;
   if (latitude !== undefined) updateData.latitude = latitude;
   if (longitude !== undefined) updateData.longitude = longitude;
 

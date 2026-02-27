@@ -3,6 +3,14 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
+interface AgendaRespon {
+  id: string;
+  agendaId: string;
+  calegId: string;
+  status: "approve" | "reject" | null;
+  waktuRespon: string | null;
+}
+
 interface Agenda {
   id: string;
   judul: string;
@@ -13,86 +21,16 @@ interface Agenda {
   waktuSelesai: string;
   statusAktif: boolean;
   createdAt: string;
-  respon?: {
-    status: "approve" | "reject" | null;
-    waktuRespon: string | null;
-  } | null;
+  respon: AgendaRespon[];
 }
 
-interface Caleg {
-  id: string;
-  namaLengkap: string;
-}
-
-const dataDummy: Agenda[] = [
-  {
-    id: "1",
-    judul: "Sosialisasi Program Partai",
-    deskripsi: "Sosialisasi program kerja partai kepada masyarakat Kecamatan Palu Barat",
-    lokasi: "Balai Rakyat Palu Barat",
-    tanggal: "2026-03-05",
-    waktuMulai: "2026-03-05T09:00:00",
-    waktuSelesai: "2026-03-05T12:00:00",
-    statusAktif: true,
-    createdAt: "2026-02-20T10:00:00",
-    respon: { status: "approve", waktuRespon: "2026-02-21T08:30:00" },
-  },
-  {
-    id: "2",
-    judul: "Kerja Bakti Membersihkan Sungai",
-    deskripsi: "Kegiatan kerja bakti membersihkan sungai di area pasar",
-    lokasi: "Pasar Palu",
-    tanggal: "2026-03-10",
-    waktuMulai: "2026-03-10T07:00:00",
-    waktuSelesai: "2026-03-10T10:00:00",
-    statusAktif: true,
-    createdAt: "2026-02-22T14:00:00",
-    respon: { status: "reject", waktuRespon: "2026-02-23T09:00:00" },
-  },
-  {
-    id: "3",
-    judul: "Silaturahmi dengan Tokoh Masyarakat",
-    deskripsi: "Pertemuan dan silaturahmi dengan tokoh masyarakat Kecamatan Donggala",
-    lokasi: "Rumah Tokoh Masyarakat",
-    tanggal: "2026-03-15",
-    waktuMulai: "2026-03-15T15:00:00",
-    waktuSelesai: "2026-03-15T17:00:00",
-    statusAktif: true,
-    createdAt: "2026-02-24T11:00:00",
-    respon: null,
-  },
-  {
-    id: "4",
-    judul: "Penyaluran Bantuan Sembako",
-    deskripsi: "Distribusi bantuan sembako untuk warga terdampak bencana",
-    lokasi: "Kantor Kecamatan Sigi",
-    tanggal: "2026-02-15",
-    waktuMulai: "2026-02-15T08:00:00",
-    waktuSelesai: "2026-02-15T14:00:00",
-    statusAktif: false,
-    createdAt: "2026-02-10T09:00:00",
-    respon: { status: "approve", waktuRespon: "2026-02-11T10:00:00" },
-  },
-  {
-    id: "5",
-    judul: "Rapat Koordinasi Tim Sukses",
-    deskripsi: "Rapat koordinasi persiapan kampanye akbar",
-    lokasi: "Secretariat Tim Sukses",
-    tanggal: "2026-03-20",
-    waktuMulai: "2026-03-20T13:00:00",
-    waktuSelesai: "2026-03-20T16:00:00",
-    statusAktif: true,
-    createdAt: "2026-02-25T16:00:00",
-    respon: null,
-  },
-];
-
-export default function AgendaClient() {
-  const [agendas, setAgendas] = useState(dataDummy);
+export default function AgendaClient({ initialAgendas }: { initialAgendas: Agenda[] }) {
+  const [agendas, setAgendas] = useState<Agenda[]>(initialAgendas);
   const [showModal, setShowModal] = useState(false);
   const [editingAgenda, setEditingAgenda] = useState<Agenda | null>(null);
   const [filterStatus, setFilterStatus] = useState<"all" | "active" | "inactive">("all");
   const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
 
   const [form, setForm] = useState({
@@ -127,60 +65,110 @@ export default function AgendaClient() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setLoading(true);
 
-    const url = editingAgenda
-      ? `/api/admin/agenda/${editingAgenda.id}`
-      : "/api/admin/agenda";
-    const method = editingAgenda ? "PUT" : "POST";
+    try {
+      const url = editingAgenda
+        ? `/api/admin/agenda/${editingAgenda.id}`
+        : "/api/admin/agenda";
+      const method = editingAgenda ? "PUT" : "POST";
 
-    const res = await fetch(url, {
-      method,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
-    });
+      // Combine tanggal + waktu menjadi datetime
+      const payload = {
+        ...form,
+        waktuMulai: form.tanggal && form.waktuMulai
+          ? `${form.tanggal}T${form.waktuMulai}:00`
+          : form.waktuMulai,
+        waktuSelesai: form.tanggal && form.waktuSelesai
+          ? `${form.tanggal}T${form.waktuSelesai}:00`
+          : form.waktuSelesai,
+      };
 
-    if (res.ok) {
-      setShowModal(false);
-      setEditingAgenda(null);
-      setForm({
-        judul: "",
-        deskripsi: "",
-        lokasi: "",
-        tanggal: "",
-        waktuMulai: "",
-        waktuSelesai: "",
-        statusAktif: true,
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
       });
-      router.refresh();
-      const data = await fetch("/api/admin/agenda").then((r) => r.json());
-      setAgendas(data);
-    } else {
-      const err = await res.json();
-      alert(err.error || "Gagal menyimpan agenda");
+
+      if (res.ok) {
+        setShowModal(false);
+        setEditingAgenda(null);
+        setForm({
+          judul: "",
+          deskripsi: "",
+          lokasi: "",
+          tanggal: "",
+          waktuMulai: "",
+          waktuSelesai: "",
+          statusAktif: true,
+        });
+        // Refresh data from API
+        const data = await fetch("/api/admin/agenda").then((r) => r.json());
+        if (Array.isArray(data)) {
+          setAgendas(data);
+        }
+        router.refresh();
+      } else {
+        const err = await res.json();
+        alert(err.error || "Gagal menyimpan agenda");
+      }
+    } catch {
+      alert("Terjadi kesalahan saat menyimpan agenda");
+    } finally {
+      setLoading(false);
     }
   }
 
   async function handleDelete(id: string) {
     if (!confirm("Yakin hapus agenda ini?")) return;
-    const res = await fetch(`/api/admin/agenda/${id}`, { method: "DELETE" });
-    if (res.ok) {
-      router.refresh();
-      setAgendas((prev) => prev.filter((a) => a.id !== id));
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/admin/agenda/${id}`, { method: "DELETE" });
+      if (res.ok) {
+        setAgendas((prev) => prev.filter((a) => a.id !== id));
+        router.refresh();
+      } else {
+        const err = await res.json();
+        alert(err.error || "Gagal menghapus agenda");
+      }
+    } catch {
+      alert("Terjadi kesalahan saat menghapus agenda");
+    } finally {
+      setLoading(false);
     }
   }
 
   async function handleToggleActive(id: string, isActive: boolean) {
-    const res = await fetch(`/api/admin/agenda/${id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ statusAktif: !isActive }),
-    });
-    if (res.ok) {
-      setAgendas((prev) =>
-        prev.map((a) =>
-          a.id === id ? { ...a, statusAktif: !isActive } : a
-        )
-      );
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/admin/agenda/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ statusAktif: !isActive }),
+      });
+      if (res.ok) {
+        setAgendas((prev) =>
+          prev.map((a) =>
+            a.id === id ? { ...a, statusAktif: !isActive } : a
+          )
+        );
+      } else {
+        const err = await res.json();
+        alert(err.error || "Gagal mengubah status agenda");
+      }
+    } catch {
+      alert("Terjadi kesalahan saat mengubah status");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function extractTime(dateStr: string) {
+    try {
+      const d = new Date(dateStr);
+      return d.toTimeString().slice(0, 5); // "HH:MM"
+    } catch {
+      return "";
     }
   }
 
@@ -191,8 +179,8 @@ export default function AgendaClient() {
       deskripsi: agenda.deskripsi || "",
       lokasi: agenda.lokasi || "",
       tanggal: agenda.tanggal.split("T")[0],
-      waktuMulai: agenda.waktuMulai.slice(0, 16),
-      waktuSelesai: agenda.waktuSelesai.slice(0, 16),
+      waktuMulai: extractTime(agenda.waktuMulai),
+      waktuSelesai: extractTime(agenda.waktuSelesai),
       statusAktif: agenda.statusAktif,
     });
     setShowModal(true);
@@ -396,31 +384,34 @@ export default function AgendaClient() {
                 </div>
               </div>
 
-              {/* Respon Section (untuk view caleg nanti) */}
-              {agenda.respon && (
+              {/* Respon Section */}
+              {agenda.respon && agenda.respon.length > 0 && (
                 <div className="mt-3 pt-3 border-t border-gray-100">
-                  <div className="flex items-center gap-2 text-sm">
-                    <span className="text-gray-600">Respon Anda:</span>
-                    {agenda.respon.status === "approve" ? (
-                      <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium flex items-center gap-1">
-                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                        Hadir (Approve)
-                      </span>
-                    ) : agenda.respon.status === "reject" ? (
-                      <span className="px-2 py-1 bg-red-100 text-red-700 rounded-full text-xs font-medium flex items-center gap-1">
-                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                        Tidak Hadir (Reject)
-                      </span>
-                    ) : null}
-                    {agenda.respon.waktuRespon && (
-                      <span className="text-xs text-gray-400">
-                        pada {formatDate(agenda.respon.waktuRespon)}
-                      </span>
-                    )}
+                  <p className="text-xs text-gray-500 mb-2">Respon Caleg ({agenda.respon.length})</p>
+                  <div className="flex flex-wrap gap-2">
+                    {agenda.respon.map((r) => (
+                      <div key={r.id} className="flex items-center gap-1 text-sm">
+                        {r.status === "approve" ? (
+                          <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium flex items-center gap-1">
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                            Hadir
+                          </span>
+                        ) : r.status === "reject" ? (
+                          <span className="px-2 py-1 bg-red-100 text-red-700 rounded-full text-xs font-medium flex items-center gap-1">
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                            Tidak Hadir
+                          </span>
+                        ) : (
+                          <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded-full text-xs font-medium">
+                            Belum Respon
+                          </span>
+                        )}
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}
@@ -515,7 +506,7 @@ export default function AgendaClient() {
                     Waktu Mulai *
                   </label>
                   <input
-                    type="datetime-local"
+                    type="time"
                     value={form.waktuMulai}
                     onChange={(e) => setForm({ ...form, waktuMulai: e.target.value })}
                     className="w-full px-3 py-2 border rounded-lg text-sm"
@@ -527,7 +518,7 @@ export default function AgendaClient() {
                     Waktu Selesai *
                   </label>
                   <input
-                    type="datetime-local"
+                    type="time"
                     value={form.waktuSelesai}
                     onChange={(e) => setForm({ ...form, waktuSelesai: e.target.value })}
                     className="w-full px-3 py-2 border rounded-lg text-sm"
@@ -538,9 +529,10 @@ export default function AgendaClient() {
               <div className="flex gap-3 pt-4">
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium text-sm"
+                  disabled={loading}
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {editingAgenda ? "Update" : "Simpan"}
+                  {loading ? "Menyimpan..." : editingAgenda ? "Update" : "Simpan"}
                 </button>
                 <button
                   type="button"

@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json();
-  const { username, password, name, phone, wilayahId, koordinatorId, latitude, longitude } = body;
+  const { username, password, name, phone, tps, wilayahId, koordinatorId, latitude, longitude } = body;
 
   if (!username || !password || !name || !wilayahId || !koordinatorId) {
     return NextResponse.json(
@@ -85,6 +85,7 @@ export async function POST(req: NextRequest) {
         wilayahId,
         namaLengkap: name,
         noHp: phone || "",
+        tps: tps || null,
         latitude: latitude !== undefined ? latitude : null,
         longitude: longitude !== undefined ? longitude : null,
       },
